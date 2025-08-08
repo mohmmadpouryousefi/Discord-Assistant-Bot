@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "axios": "^1.11.0",
     "discord.js": "^14.21.0",
-    "dotenv": "^17.2.1"
+    "dotenv": "^17.2.1",
+    "nodemon": "^3.1.10"
   },
   "name": "discord-bot",
   "version": "1.0.0",
