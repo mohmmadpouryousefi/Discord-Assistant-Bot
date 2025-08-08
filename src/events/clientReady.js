@@ -1,12 +1,15 @@
 const { REST, Routes } = require("discord.js");
 require("dotenv").config();
 
+const { getWeatherForecast } = require("../requests/forecast");
+
 const rest = new REST({ version: "10" }).setToken(
   process.env.DISCORD_BOT_TOKEN
 );
 
 async function clientReadyHandler(client) {
   console.log(`Ready! Logged in as ${client.user.tag}`);
+
   try {
     console.log(
       `Started refreshing application ${client.commands.size} commands.`
