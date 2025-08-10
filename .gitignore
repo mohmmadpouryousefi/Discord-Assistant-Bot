@@ -85,3 +85,5 @@ Thumbs.db
 # Discord bot specific
 config.json
 token.txt
+
+ROADMAP.md
