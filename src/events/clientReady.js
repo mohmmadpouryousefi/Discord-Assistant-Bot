@@ -1,31 +1,25 @@
 const { REST, Routes } = require("discord.js");
-require("dotenv").config();
+const config = require("../config");
+const logger = require("../utils/logger");
 
-const { getWeatherForecast } = require("../requests/forecast");
-
-const rest = new REST({ version: "10" }).setToken(
-  process.env.DISCORD_BOT_TOKEN
-);
+const rest = new REST({ version: "10" }).setToken(config.bot.token);
 
 async function clientReadyHandler(client) {
-  console.log(`Ready! Logged in as ${client.user.tag}`);
+  logger.info(`Ready! Logged in as ${client.user.tag}`);
 
   try {
-    console.log(
+    logger.info(
       `Started refreshing application ${client.commands.size} commands.`
     );
     const data = await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
+      Routes.applicationGuildCommands(config.bot.clientId, config.bot.guildId),
       {
         body: client.commands.map((command) => command.data.toJSON()),
       }
     );
-    console.log(`Successfully reloaded ${data.length} application commands.`);
+    logger.info(`Successfully reloaded ${data.length} application commands.`);
   } catch (error) {
-    console.error(error);
+    logger.error("Error reloading application commands:", error);
   }
 }
 

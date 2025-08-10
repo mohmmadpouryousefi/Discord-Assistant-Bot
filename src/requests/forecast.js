@@ -1,6 +1,8 @@
 const axios = require("axios");
+const config = require("../config");
+const logger = require("../utils/logger");
 
-const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
+const BASE_URL = config.apis.weather.baseUrl + "/forecast.json";
 const FORECAST_DAYS = 3;
 
 async function getWeatherForecast(location) {
@@ -8,17 +10,18 @@ async function getWeatherForecast(location) {
     throw new Error("Location must be a valid string");
   }
 
-  if (!process.env.WEATHER_API_KEY) {
-    throw new Error("WEATHER_API_KEY environment variable is not set");
+  if (!config.apis.weather.key) {
+    throw new Error("Weather API key is not configured");
   }
 
   try {
     const response = await axios.get(BASE_URL, {
       params: {
-        key: process.env.WEATHER_API_KEY,
+        key: config.apis.weather.key,
         q: location,
         days: FORECAST_DAYS,
       },
+      timeout: config.apis.weather.timeout,
     });
 
     // Extract location data from the response
@@ -54,7 +57,7 @@ async function getWeatherForecast(location) {
   } catch (error) {
     if (error.response) {
       // API returned an error response
-      console.error("Weather API Error:", error.response.data);
+      logger.error("Weather API Error:", error.response.data);
       throw new Error(
         `Weather API Error: ${
           error.response.data.error?.message || "Unknown error"
@@ -62,10 +65,10 @@ async function getWeatherForecast(location) {
       );
     } else if (error.request) {
       // Network error
-      console.error("Network Error:", error.message);
+      logger.error("Network Error:", error.message);
       throw new Error("Unable to connect to weather service");
     } else {
-      console.error("Error fetching weather forecast:", error.message);
+      logger.error("Error fetching weather forecast:", error.message);
       throw error;
     }
   }

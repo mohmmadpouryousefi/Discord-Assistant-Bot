@@ -1,4 +1,6 @@
 require("dotenv").config();
+const config = require("./config");
+const logger = require("./utils/logger");
 
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
 const fs = require("node:fs");
@@ -24,12 +26,23 @@ for (const file of commandFiles) {
   // Set a new item in the Collection with the key as the command name and the value as the exported module
   if ("data" in command && "execute" in command) {
     client.commands.set(command.data.name, command);
-    console.log(`✅ Loaded command: ${command.data.name}`);
+    logger.info(`✅ Loaded command: ${command.data.name}`);
   } else {
-    console.log(
+    logger.warn(
       `⚠️  [WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
     );
   }
+}
+
+// Log configuration summary
+logger.info("Bot Configuration:", config.getConfigSummary());
+
+// Start Telegram bot if enabled
+if (config.features.enableTelegram && config.bot.telegramToken) {
+  require("./telegram");
+  logger.info("🚀 Telegram bot integration enabled");
+} else {
+  logger.warn("⚠️ Telegram bot disabled or token missing");
 }
 
 client.once(Events.ClientReady, clientReadyHandler);
@@ -41,20 +54,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
   const command = interaction.client.commands.get(interaction.commandName);
 
   if (!command) {
-    console.error(
+    logger.error(
       `❌ No command matching ${interaction.commandName} was found.`
     );
     return;
   }
 
   try {
-    console.log(
+    logger.info(
       `🔄 Executing command: ${interaction.commandName} by ${interaction.user.tag}`
     );
     await command.execute(interaction);
-    console.log(`✅ Successfully executed: ${interaction.commandName}`);
+    logger.info(`✅ Successfully executed: ${interaction.commandName}`);
   } catch (error) {
-    console.error(`❌ Error executing ${interaction.commandName}:`, error);
+    logger.error(`❌ Error executing ${interaction.commandName}:`, error);
 
     const errorMessage = {
       content: "There was an error while executing this command!",
@@ -71,15 +84,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // Handle process termination gracefully
 process.on("SIGINT", () => {
-  console.log("👋 Received SIGINT. Gracefully shutting down...");
+  logger.info("👋 Received SIGINT. Gracefully shutting down...");
   client.destroy();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  console.log("👋 Received SIGTERM. Gracefully shutting down...");
+  logger.info("👋 Received SIGTERM. Gracefully shutting down...");
   client.destroy();
   process.exit(0);
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);
+client.login(config.bot.token);
