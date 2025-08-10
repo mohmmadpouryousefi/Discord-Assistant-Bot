@@ -36,6 +36,7 @@ Discord Assistant Bot is a sophisticated, multi-platform chatbot that operates s
 - **Slash Commands** - Modern Discord command interface
 - **Weather Forecasts** - Get detailed weather information for any city
 - **QR Code Generator** - Convert text/URLs to QR codes with attachments
+- **Currency Exchange** - Live exchange rates to Iranian Rial (IRR)
 - **Bot Configuration** - Display current bot settings and status
 - **User Information** - Detailed user profile and server statistics
 - **Server Information** - Comprehensive server details and statistics
@@ -45,6 +46,7 @@ Discord Assistant Bot is a sophisticated, multi-platform chatbot that operates s
 - **Smart Message Detection** - Auto-suggests actions based on input
 - **Weather Information** - Real-time weather data with rich formatting
 - **QR Code Generation** - Instant QR code creation from any text
+- **Currency Rates** - Live exchange rates with 13+ major currencies
 - **Multi-step Workflows** - Guided user interactions
 - **Professional Responses** - Markdown-formatted messages with emojis
 
@@ -135,6 +137,7 @@ Discord Assistant Bot is a sophisticated, multi-platform chatbot that operates s
 |---------|-------------|--------|
 | `/weather <city>` | Get weather information | `/weather London` |
 | `/qr <text>` | Generate QR code | `/qr https://example.com` |
+| `/currency [code] [amount]` | Live exchange rates to IRR | `/currency USD 100` |
 | `/config` | Show bot configuration | `/config` |
 | `/user [user]` | Display user information | `/user @username` |
 | `/server` | Show server information | `/server` |
@@ -147,6 +150,7 @@ Discord Assistant Bot is a sophisticated, multi-platform chatbot that operates s
 | `/start` | Show interactive menu | `/start` |
 | `/weather <city>` | Get weather information | `/weather Paris` |
 | `/qr <text>` | Generate QR code | `/qr Hello World` |
+| `/currency [code]` | Exchange rates to IRR | `/currency USD` |
 | `/help` | Show detailed help | `/help` |
 | `/menu` | Return to main menu | `/menu` |
 | `/ping` | Check bot status | `/ping` |
@@ -344,7 +348,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **⭐ Star this repository if you found it helpful!**
 
-Made with ❤️ by [Mohammad Pour Yousefi](https://github.com/mohmmadpouryousefi)
+Made with ❤️ by [Mohammad PourYousefi](https://github.com/mohmmadpouryousefi)
 
 ![GitHub stars](https://img.shields.io/github/stars/mohmmadpouryousefi/Discord-Assistant-Bot?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/mohmmadpouryousefi/Discord-Assistant-Bot?style=social)

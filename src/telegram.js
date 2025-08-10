@@ -3,6 +3,7 @@ const config = require("./config");
 const QRCode = require("qrcode");
 const logger = require("./utils/logger");
 const { getWeatherForecast } = require("./requests/forecast");
+const CurrencyConverter = require("./utils/currency-converter");
 
 const TELEGRAM_BOT_TOKEN =
   config.bot.telegramToken || process.env.TELEGRAM_BOT_TOKEN;
@@ -24,9 +25,10 @@ Choose what you'd like to do:`;
           { text: "📱 QR Code", callback_data: "qr_menu" },
         ],
         [
+          { text: "💱 Currency Rates", callback_data: "currency_menu" },
           { text: "🏓 Ping Bot", callback_data: "ping" },
-          { text: "❓ Help", callback_data: "help" },
         ],
+        [{ text: "❓ Help", callback_data: "help" }],
       ],
     },
   };
@@ -100,6 +102,70 @@ bot.onText(/\/qr (.+)/, async (msg, match) => {
   }
 });
 
+// Currency command implementation
+bot.onText(/\/currency (.*)/, async (msg, match) => {
+  const input = match[1].trim().toUpperCase();
+  const chatId = msg.chat.id;
+
+  try {
+    logger.info(
+      `Telegram currency request for: ${input} by ${msg.from.username}`
+    );
+
+    bot.sendChatAction(chatId, "typing");
+
+    const converter = new CurrencyConverter();
+    let conversions;
+    let message;
+
+    if (!input || input === "") {
+      // Show major currencies
+      const majorCurrencies = ["USD", "EUR", "GBP", "AED", "CAD", "AUD"];
+      conversions = await converter.getExchangeRates(majorCurrencies, 1);
+      message = "💱 *Major Currency Exchange Rates to IRR*\n\n";
+    } else if (converter.supportedCurrencies.includes(input)) {
+      conversions = await converter.getExchangeRates([input], 1);
+      const currencyName = converter.getCurrencyName(input);
+      message = `💱 *${converter.getCurrencyFlag(
+        input
+      )} ${input} (${currencyName}) to IRR*\n\n`;
+    } else {
+      bot.sendMessage(
+        chatId,
+        `❌ Currency "${input}" is not supported.\n\n📋 *Supported currencies:*\n${converter.supportedCurrencies.join(
+          ", "
+        )}`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+
+    // Format the message
+    Object.entries(conversions).forEach(([currencyCode, data]) => {
+      const flag = converter.getCurrencyFlag(currencyCode);
+      const name = converter.getCurrencyName(currencyCode);
+      const rate = data.rate.toLocaleString("en-US", {
+        maximumFractionDigits: 2,
+      });
+
+      message += `${flag} *${currencyCode}* (${name})\n`;
+      message += `💰 1 ${currencyCode} = *${rate} IRR*\n\n`;
+    });
+
+    message += `📅 *Updated:* ${new Date().toLocaleDateString("fa-IR")}\n`;
+    message += `⏰ *Time:* ${new Date().toLocaleTimeString("fa-IR")}\n`;
+    message += `📡 *Source:* currencylayer.com`;
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    logger.error(`Telegram currency error: ${error.message}`);
+    bot.sendMessage(
+      chatId,
+      "❌ Sorry, couldn't fetch currency rates. Please try again later."
+    );
+  }
+});
+
 // Handle button clicks
 bot.on("callback_query", async (callbackQuery) => {
   const message = callbackQuery.message;
@@ -126,6 +192,39 @@ bot.on("callback_query", async (callbackQuery) => {
         "📱 *QR Code Generator*\n\nPlease send me the text or URL you want to convert to QR code.\n\nExample: https://google.com",
         {
           parse_mode: "Markdown",
+        }
+      );
+      break;
+
+    case "currency_menu":
+      const currencyKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "💵 USD to IRR", callback_data: "currency:USD" },
+              { text: "💶 EUR to IRR", callback_data: "currency:EUR" },
+            ],
+            [
+              { text: "💷 GBP to IRR", callback_data: "currency:GBP" },
+              { text: "💴 AED to IRR", callback_data: "currency:AED" },
+            ],
+            [
+              {
+                text: "📊 All Major Currencies",
+                callback_data: "currency:ALL",
+              },
+            ],
+            [{ text: "🔙 Back to Menu", callback_data: "back_to_menu" }],
+          ],
+        },
+      };
+
+      bot.sendMessage(
+        chatId,
+        "💱 *Currency Exchange Rates*\n\nSelect a currency to see its value in Iranian Rials:",
+        {
+          parse_mode: "Markdown",
+          ...currencyKeyboard,
         }
       );
       break;
@@ -184,6 +283,57 @@ bot.on("callback_query", async (callbackQuery) => {
           );
         }
       }
+
+      if (data.startsWith("currency:")) {
+        const currency = data.replace("currency:", "");
+        try {
+          bot.sendChatAction(chatId, "typing");
+
+          const converter = new CurrencyConverter();
+          let conversions;
+          let message;
+
+          if (currency === "ALL") {
+            // Show major currencies
+            const majorCurrencies = ["USD", "EUR", "GBP", "AED", "CAD", "AUD"];
+            conversions = await converter.getExchangeRates(majorCurrencies, 1);
+            message = "💱 *Major Currency Exchange Rates to IRR*\n\n";
+          } else {
+            conversions = await converter.getExchangeRates([currency], 1);
+            const currencyName = converter.getCurrencyName(currency);
+            message = `💱 *${converter.getCurrencyFlag(
+              currency
+            )} ${currency} (${currencyName}) to IRR*\n\n`;
+          }
+
+          // Format the message
+          Object.entries(conversions).forEach(([currencyCode, data]) => {
+            const flag = converter.getCurrencyFlag(currencyCode);
+            const name = converter.getCurrencyName(currencyCode);
+            const rate = data.rate.toLocaleString("en-US", {
+              maximumFractionDigits: 2,
+            });
+
+            message += `${flag} *${currencyCode}* (${name})\n`;
+            message += `💰 1 ${currencyCode} = *${rate} IRR*\n\n`;
+          });
+
+          message += `📅 *Updated:* ${new Date().toLocaleDateString(
+            "fa-IR"
+          )}\n`;
+          message += `⏰ *Time:* ${new Date().toLocaleTimeString("fa-IR")}\n`;
+          message += `📡 *Source:* currencylayer.com`;
+
+          bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+        } catch (error) {
+          logger.error(`Telegram currency error: ${error.message}`);
+          bot.sendMessage(
+            chatId,
+            "❌ Sorry, couldn't fetch currency rates. Please try again later."
+          );
+        }
+      }
+
       break;
   }
 });
@@ -202,13 +352,20 @@ function showHelpMenu(chatId) {
 • High quality image output
 • Usage: Click QR button or send text
 
-🔧 *Bot Commands*
+� *Currency Exchange*
+• Live exchange rates to Iranian Rial (IRR)
+• Support for major world currencies
+• Updated every 24 hours
+• Usage: Click Currency button or use /currency command
+
+�🔧 *Bot Commands*
 • /start - Show main menu
 • /help - Show this help
 • /menu - Return to main menu
 • /ping - Check bot status
 • /weather <city> - Get weather directly
 • /qr <text> - Generate QR code directly
+• /currency [code] - Get exchange rates
 
 💡 *Tips:*
 • Use buttons for easy navigation
