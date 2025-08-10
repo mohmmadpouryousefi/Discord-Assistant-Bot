@@ -39,19 +39,6 @@ class Config {
     };
   }
 
-  // Database Configuration
-  get database() {
-    return {
-      url: process.env.DATABASE_URL,
-      type: process.env.DATABASE_TYPE || "mongodb",
-      name: process.env.DATABASE_NAME || "discord_bot",
-      host: process.env.DATABASE_HOST || "localhost",
-      port: parseInt(process.env.DATABASE_PORT) || 27017,
-      username: process.env.DATABASE_USERNAME,
-      password: process.env.DATABASE_PASSWORD,
-    };
-  }
-
   // API Keys and External Services
   get apis() {
     return {
@@ -100,15 +87,6 @@ class Config {
   }
 
   // Server and Performance Configuration
-  get server() {
-    return {
-      port: parseInt(process.env.PORT) || 3000,
-      host: process.env.HOST || "localhost",
-      rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW) || 60000, // 1 minute
-      rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 100,
-      enableCors: process.env.ENABLE_CORS !== "false",
-    };
-  }
 
   // Cache Configuration
   get cache() {
@@ -121,32 +99,8 @@ class Config {
   }
 
   // Security Configuration
-  get security() {
-    return {
-      encryptionKey: process.env.ENCRYPTION_KEY,
-      jwtSecret: process.env.JWT_SECRET,
-      sessionSecret: process.env.SESSION_SECRET,
-      enableRateLimit: process.env.ENABLE_RATE_LIMIT !== "false",
-      enableInputValidation: process.env.ENABLE_INPUT_VALIDATION !== "false",
-      allowedOrigins: process.env.ALLOWED_ORIGINS?.split(",") || ["*"],
-      maxRequestSize: process.env.MAX_REQUEST_SIZE || "10mb",
-    };
-  }
 
   // Notification Configuration
-  get notifications() {
-    return {
-      enableDiscordNotifications:
-        process.env.ENABLE_DISCORD_NOTIFICATIONS !== "false",
-      enableEmailNotifications:
-        process.env.ENABLE_EMAIL_NOTIFICATIONS === "true",
-      enableSlackNotifications:
-        process.env.ENABLE_SLACK_NOTIFICATIONS === "true",
-      discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL,
-      emailProvider: process.env.EMAIL_PROVIDER || "gmail",
-      slackWebhookUrl: process.env.SLACK_WEBHOOK_URL,
-    };
-  }
 
   // Validate required environment variables
   validateRequiredEnvVars() {
