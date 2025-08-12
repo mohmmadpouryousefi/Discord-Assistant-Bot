@@ -14,10 +14,22 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:ts": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start:prod": "npm run build && node dist/index.js",
+    "watch": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "@types/node-telegram-bot-api": "^0.64.10",
+    "@types/qrcode": "^1.5.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
 }
