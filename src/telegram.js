@@ -13,9 +13,9 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 bot.onText(/\/start/, (msg) => {
   logger.info(`Telegram user ${msg.from.username} started the bot`);
 
-  const welcomeText = `🤖 *Welcome to Discord/Telegram Assistant!*
+  const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
 
-Choose what you'd like to do:`;
+لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
 
   const keyboard = {
     reply_markup: {
@@ -67,7 +67,7 @@ bot.onText(/\/weather (.+)/, async (msg, match) => {
     logger.error(`Telegram weather error: ${error.message}`);
     bot.sendMessage(
       chatId,
-      "❌ Sorry, I couldn't get weather information for that location."
+      "❌ متأسفم، نتونستم اطلاعات آب و هوای این مکان رو بگیرم.."
     );
   }
 });
@@ -179,7 +179,7 @@ bot.on("callback_query", async (callbackQuery) => {
     case "weather_menu":
       bot.sendMessage(
         chatId,
-        "🌤️ *Weather Information*\n\nPlease send me a city name to get weather info.\n\nExample: London",
+        "🌤️ *اطلاعات آب و هوا*\n\nلطفاً نام شهری را برای دریافت اطلاعات آب و هوا ارسال کنید.\n\nمثال: London",
         {
           parse_mode: "Markdown",
         }
@@ -189,7 +189,7 @@ bot.on("callback_query", async (callbackQuery) => {
     case "qr_menu":
       bot.sendMessage(
         chatId,
-        "📱 *QR Code Generator*\n\nPlease send me the text or URL you want to convert to QR code.\n\nExample: https://google.com",
+        "📱 *تولید کد QR*\n\nلطفاً متن یا URL مورد نظر خود را برای تبدیل به کد QR ارسال کنید.\n\nمثال: https://google.com",
         {
           parse_mode: "Markdown",
         }
@@ -210,18 +210,18 @@ bot.on("callback_query", async (callbackQuery) => {
             ],
             [
               {
-                text: "📊 All Major Currencies",
+                text: "📊 همه ارزهای اصلی",
                 callback_data: "currency:ALL",
               },
             ],
-            [{ text: "🔙 Back to Menu", callback_data: "back_to_menu" }],
+            [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }],
           ],
         },
       };
 
       bot.sendMessage(
         chatId,
-        "💱 *Currency Exchange Rates*\n\nSelect a currency to see its value in Iranian Rials:",
+        "💱 *نرخ ارز*\n\nلطفاً یک ارز را برای مشاهده ارزش آن به ریال ایران انتخاب کنید:",
         {
           parse_mode: "Markdown",
           ...currencyKeyboard,
@@ -230,7 +230,7 @@ bot.on("callback_query", async (callbackQuery) => {
       break;
 
     case "ping":
-      bot.sendMessage(chatId, "🏓 Pong! Bot is alive and running perfectly!");
+      bot.sendMessage(chatId, "🏓 تست، بات فعال است.");
       break;
 
     case "help":
@@ -265,7 +265,7 @@ bot.on("callback_query", async (callbackQuery) => {
             caption: `📱 QR Code for: "${text}"`,
           });
         } catch (error) {
-          bot.sendMessage(chatId, "❌ Failed to generate QR code");
+          bot.sendMessage(chatId, "❌ نتونستم کد QR رو تولید کنم");
         }
       }
 
