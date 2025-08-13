@@ -9,10 +9,19 @@ const TELEGRAM_BOT_TOKEN =
   config.bot.telegramToken || process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
-// Start command with interactive menu
-bot.onText(/\/start/, (msg) => {
-  logger.info(`Telegram user ${msg.from.username} started the bot`);
+// Helper function to create back button
+function createBackButton() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }],
+      ],
+    },
+  };
+}
 
+// Helper function to show main menu
+function showMainMenu(chatId) {
   const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
 
 لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
@@ -33,10 +42,16 @@ bot.onText(/\/start/, (msg) => {
     },
   };
 
-  bot.sendMessage(msg.chat.id, welcomeText, {
+  bot.sendMessage(chatId, welcomeText, {
     parse_mode: "Markdown",
     ...keyboard,
   });
+}
+
+// Start command with interactive menu
+bot.onText(/\/start/, (msg) => {
+  logger.info(`Telegram user ${msg.from.username} started the bot`);
+  showMainMenu(msg.chat.id);
 });
 
 // Weather command implementation
@@ -182,6 +197,7 @@ bot.on("callback_query", async (callbackQuery) => {
         "🌤️ *اطلاعات آب و هوا*\n\nلطفاً نام شهری را برای دریافت اطلاعات آب و هوا ارسال کنید.\n\nمثال: London",
         {
           parse_mode: "Markdown",
+          ...createBackButton(),
         }
       );
       break;
@@ -192,6 +208,7 @@ bot.on("callback_query", async (callbackQuery) => {
         "📱 *تولید کد QR*\n\nلطفاً متن یا URL مورد نظر خود را برای تبدیل به کد QR ارسال کنید.\n\nمثال: https://google.com",
         {
           parse_mode: "Markdown",
+          ...createBackButton(),
         }
       );
       break;
@@ -230,7 +247,7 @@ bot.on("callback_query", async (callbackQuery) => {
       break;
 
     case "ping":
-      bot.sendMessage(chatId, "🏓 تست، بات فعال است.");
+      bot.sendMessage(chatId, "🏓 تست، بات فعال است.", createBackButton());
       break;
 
     case "help":
@@ -238,31 +255,7 @@ bot.on("callback_query", async (callbackQuery) => {
       break;
 
     case "back_to_menu":
-      // Show main menu again
-      const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
-
-لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
-
-      const keyboard = {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "🌤️ اطلاعات آب و هوا", callback_data: "weather_menu" },
-              { text: "📱 QR Code", callback_data: "qr_menu" },
-            ],
-            [
-              { text: "💱 نرخ ارز", callback_data: "currency_menu" },
-              { text: "🏓 پینگ بات", callback_data: "ping" },
-            ],
-            [{ text: "❓ راهنما", callback_data: "help" }],
-          ],
-        },
-      };
-
-      bot.sendMessage(chatId, welcomeText, {
-        parse_mode: "Markdown",
-        ...keyboard,
-      });
+      showMainMenu(chatId);
       break;
 
     default:
@@ -390,46 +383,15 @@ function showHelpMenu(chatId) {
 • متن ساده را برای اقدامات سریع ارسال کنید
 • تمام ویژگی‌ها به‌طور آنی کار می‌کنند`;
 
-  const backButton = {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }],
-      ],
-    },
-  };
-
   bot.sendMessage(chatId, helpText, {
     parse_mode: "Markdown",
-    ...backButton,
+    ...createBackButton(),
   });
 }
 
 // Menu command to show main menu anytime
 bot.onText(/\/menu/, (msg) => {
-  const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
-
-لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
-
-  const keyboard = {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "🌤️ اطلاعات آب و هوا", callback_data: "weather_menu" },
-          { text: "📱 QR Code", callback_data: "qr_menu" },
-        ],
-        [
-          { text: "💱 نرخ ارز", callback_data: "currency_menu" },
-          { text: "🏓 پینگ بات", callback_data: "ping" },
-        ],
-        [{ text: "❓ راهنما", callback_data: "help" }],
-      ],
-    },
-  };
-
-  bot.sendMessage(msg.chat.id, welcomeText, {
-    parse_mode: "Markdown",
-    ...keyboard,
-  });
+  showMainMenu(msg.chat.id);
 });
 
 // Help command (simple version)
