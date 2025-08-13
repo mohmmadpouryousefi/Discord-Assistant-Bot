@@ -1,5 +1,5 @@
 const http = require('http');
-const logger = require('./utils/logger');
+const logger = require('./logger');
 
 /**
  * Keep-Alive HTTP Server
