@@ -197,56 +197,82 @@ bot.on("callback_query", async (callbackQuery) => {
   switch (data) {
     case "weather_menu":
       // Show popular cities with search option
-      const popularCities = cityAutocomplete.getCitiesByRegion('iran').slice(0, 4);
+      const popularCities = cityAutocomplete
+        .getCitiesByRegion("iran")
+        .slice(0, 4);
       const worldCities = [
         { name: "London", country: "UK" },
         { name: "Paris", country: "France" },
         { name: "Dubai", country: "UAE" },
-        { name: "New York", country: "USA" }
+        { name: "New York", country: "USA" },
       ];
 
       const weatherButtons = [];
-      
+
       // Add Iranian cities
       if (popularCities.length >= 2) {
         weatherButtons.push([
-          { text: `🇮🇷 ${popularCities[0].name}`, callback_data: `weather_check:${popularCities[0].name}` },
-          { text: `🇮🇷 ${popularCities[1].name}`, callback_data: `weather_check:${popularCities[1].name}` }
+          {
+            text: `🇮🇷 ${popularCities[0].name}`,
+            callback_data: `weather_check:${popularCities[0].name}`,
+          },
+          {
+            text: `🇮🇷 ${popularCities[1].name}`,
+            callback_data: `weather_check:${popularCities[1].name}`,
+          },
         ]);
       }
-      
+
       if (popularCities.length >= 4) {
         weatherButtons.push([
-          { text: `🇮🇷 ${popularCities[2].name}`, callback_data: `weather_check:${popularCities[2].name}` },
-          { text: `🇮🇷 ${popularCities[3].name}`, callback_data: `weather_check:${popularCities[3].name}` }
+          {
+            text: `🇮🇷 ${popularCities[2].name}`,
+            callback_data: `weather_check:${popularCities[2].name}`,
+          },
+          {
+            text: `🇮🇷 ${popularCities[3].name}`,
+            callback_data: `weather_check:${popularCities[3].name}`,
+          },
         ]);
       }
 
       // Add world cities
       weatherButtons.push([
-        { text: `🇬🇧 ${worldCities[0].name}`, callback_data: `weather_check:${worldCities[0].name}` },
-        { text: `🇫🇷 ${worldCities[1].name}`, callback_data: `weather_check:${worldCities[1].name}` }
+        {
+          text: `🇬🇧 ${worldCities[0].name}`,
+          callback_data: `weather_check:${worldCities[0].name}`,
+        },
+        {
+          text: `🇫🇷 ${worldCities[1].name}`,
+          callback_data: `weather_check:${worldCities[1].name}`,
+        },
       ]);
-      
+
       weatherButtons.push([
-        { text: `🇦🇪 ${worldCities[2].name}`, callback_data: `weather_check:${worldCities[2].name}` },
-        { text: `🇺🇸 ${worldCities[3].name}`, callback_data: `weather_check:${worldCities[3].name}` }
+        {
+          text: `🇦🇪 ${worldCities[2].name}`,
+          callback_data: `weather_check:${worldCities[2].name}`,
+        },
+        {
+          text: `🇺🇸 ${worldCities[3].name}`,
+          callback_data: `weather_check:${worldCities[3].name}`,
+        },
       ]);
 
       // Add search option
       weatherButtons.push([
-        { text: "🔍 جستجوی شهر", callback_data: "weather_search" }
+        { text: "🔍 جستجوی شهر", callback_data: "weather_search" },
       ]);
 
       // Add back button
       weatherButtons.push([
-        { text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }
+        { text: "🔙 بازگشت به منو", callback_data: "back_to_menu" },
       ]);
 
       const weatherKeyboard = {
         reply_markup: {
-          inline_keyboard: weatherButtons
-        }
+          inline_keyboard: weatherButtons,
+        },
       };
 
       bot.sendMessage(
@@ -354,10 +380,10 @@ bot.on("callback_query", async (callbackQuery) => {
           bot.sendChatAction(chatId, "typing");
           const forecast = await getWeatherForecast(location);
           const response = `🌤️ *وضع آب و هوا در ${forecast.location.city}, ${forecast.location.country}*\n\n🌡️ *دمای هوا:* ${forecast.current.temperature}°C\n☁️ *وضعیت:* ${forecast.current.condition}\n💧 *رطوبت:* ${forecast.current.humidity}%\n💨 *سرعت باد:* ${forecast.current.windSpeed} km/h\n🕐 *زمان محلی:* ${forecast.location.localTime}`;
-          
-          bot.sendMessage(chatId, response, { 
+
+          bot.sendMessage(chatId, response, {
             parse_mode: "Markdown",
-            ...createBackButton()
+            ...createBackButton(),
           });
         } catch (error) {
           bot.sendMessage(
@@ -489,10 +515,11 @@ bot.on("message", async (msg) => {
     if (isLikelyCity && text.length >= 2) {
       // Get city suggestions
       const suggestions = cityAutocomplete.findSuggestions(text, 6);
-      
+
       if (suggestions.length > 0) {
-        const suggestionKeyboard = cityAutocomplete.createSuggestionKeyboard(suggestions);
-        
+        const suggestionKeyboard =
+          cityAutocomplete.createSuggestionKeyboard(suggestions);
+
         bot.sendMessage(
           chatId,
           `🔍 *پیشنهادات شهر برای "${text}":*\n\nشهر مورد نظر خود را انتخاب کنید:`,
@@ -508,10 +535,10 @@ bot.on("message", async (msg) => {
           bot.sendChatAction(chatId, "typing");
           const forecast = await getWeatherForecast(text);
           const response = `🌤️ *وضع آب و هوا در ${forecast.location.city}, ${forecast.location.country}*\n\n🌡️ *دمای هوا:* ${forecast.current.temperature}°C\n☁️ *وضعیت:* ${forecast.current.condition}\n💧 *رطوبت:* ${forecast.current.humidity}%\n💨 *سرعت باد:* ${forecast.current.windSpeed} km/h\n🕐 *زمان محلی:* ${forecast.location.localTime}`;
-          
-          bot.sendMessage(chatId, response, { 
+
+          bot.sendMessage(chatId, response, {
             parse_mode: "Markdown",
-            ...createBackButton()
+            ...createBackButton(),
           });
           return;
         } catch (error) {
@@ -537,12 +564,6 @@ bot.on("message", async (msg) => {
       text.length < 100
     ) {
       const buttons = [];
-
-      // Add QR option for most text
-      buttons.push({
-        text: "📱 Generate QR Code",
-        callback_data: `qr_generate:${text}`,
-      });
 
       // Add weather option if it looks like a city
       if (isLikelyCity) {
