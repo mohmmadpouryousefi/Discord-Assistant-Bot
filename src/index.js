@@ -1,6 +1,7 @@
 require("dotenv").config();
 const config = require("./config");
 const logger = require("./utils/logger");
+const KeepAliveServer = require("./utils/keep-alive");
 
 const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
 const fs = require("node:fs");
@@ -82,15 +83,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+// Start keep-alive server for deployment
+const keepAliveServer = new KeepAliveServer();
+keepAliveServer.start();
+
 // Handle process termination gracefully
 process.on("SIGINT", () => {
   logger.info("👋 Received SIGINT. Gracefully shutting down...");
+  keepAliveServer.stop();
   client.destroy();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
   logger.info("👋 Received SIGTERM. Gracefully shutting down...");
+  keepAliveServer.stop();
   client.destroy();
   process.exit(0);
 });
