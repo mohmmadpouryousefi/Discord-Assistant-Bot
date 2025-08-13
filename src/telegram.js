@@ -21,14 +21,14 @@ Choose what you'd like to do:`;
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "🌤️ Weather Info", callback_data: "weather_menu" },
+          { text: "🌤️ اطلاعات آب و هوا", callback_data: "weather_menu" },
           { text: "📱 QR Code", callback_data: "qr_menu" },
         ],
         [
-          { text: "💱 Currency Rates", callback_data: "currency_menu" },
-          { text: "🏓 Ping Bot", callback_data: "ping" },
+          { text: "💱 نرخ ارز", callback_data: "currency_menu" },
+          { text: "🏓 پینگ بات", callback_data: "ping" },
         ],
-        [{ text: "❓ Help", callback_data: "help" }],
+        [{ text: "❓ راهنما", callback_data: "help" }],
       ],
     },
   };
@@ -55,12 +55,12 @@ bot.onText(/\/weather (.+)/, async (msg, match) => {
     const forecast = await getWeatherForecast(location);
 
     const response =
-      `🌤️ *Weather in ${forecast.location.city}, ${forecast.location.country}*\n\n` +
-      `🌡️ *Temperature:* ${forecast.current.temperature}°C\n` +
-      `☁️ *Condition:* ${forecast.current.condition}\n` +
-      `💧 *Humidity:* ${forecast.current.humidity}%\n` +
-      `💨 *Wind Speed:* ${forecast.current.windSpeed} km/h\n` +
-      `🕐 *Local Time:* ${forecast.location.localTime}`;
+      `🌤️ *وضع اب و هوا در ${forecast.location.city}, ${forecast.location.country}*\n\n` +
+      `🌡️ *دمای هوا:* ${forecast.current.temperature}°C\n` +
+      `☁️ *وضعیت:* ${forecast.current.condition}\n` +
+      `💧 *رطوبت:* ${forecast.current.humidity}%\n` +
+      `💨 *سرعت باد:* ${forecast.current.windSpeed} km/h\n` +
+      `🕐 *زمان محلی:* ${forecast.location.localTime}`;
 
     bot.sendMessage(chatId, response, { parse_mode: "Markdown" });
   } catch (error) {
