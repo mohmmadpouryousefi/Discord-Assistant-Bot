@@ -238,13 +238,31 @@ bot.on("callback_query", async (callbackQuery) => {
       break;
 
     case "back_to_menu":
-      // Show main menu again by triggering start command
-      const startMsg = {
-        chat: { id: chatId },
-        from: callbackQuery.from,
-        text: "/start",
+      // Show main menu again
+      const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
+
+لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "🌤️ اطلاعات آب و هوا", callback_data: "weather_menu" },
+              { text: "📱 QR Code", callback_data: "qr_menu" },
+            ],
+            [
+              { text: "💱 نرخ ارز", callback_data: "currency_menu" },
+              { text: "🏓 پینگ بات", callback_data: "ping" },
+            ],
+            [{ text: "❓ راهنما", callback_data: "help" }],
+          ],
+        },
       };
-      bot.emit("message", startMsg);
+
+      bot.sendMessage(chatId, welcomeText, {
+        parse_mode: "Markdown",
+        ...keyboard,
+      });
       break;
 
     default:
@@ -340,42 +358,42 @@ bot.on("callback_query", async (callbackQuery) => {
 
 // Help menu function
 function showHelpMenu(chatId) {
-  const helpText = `📚 *Bot Features & Commands:*
+  const helpText = `📚 ویژگی‌های بات و دستورات:
 
-🌤️ *Weather Information*
-• Get current weather for any city
-• Shows temperature, humidity, wind speed
-• Usage: Click Weather button or type city name
+🌤️ *اطلاعات آب و هوا*
+• دریافت وضعیت کنونی آب و هوا برای هر شهر
+• نمایش دما، رطوبت، سرعت باد
+• نحوه استفاده: دکمه آب و هوا را کلیک کنید یا نام شهر را تایپ کنید
 
-📱 *QR Code Generator*  
-• Convert text/URLs to QR codes
-• High quality image output
-• Usage: Click QR button or send text
+📱 *تولید کننده کد QR*
+• تبدیل متن/URL به کد QR
+• خروجی تصویر با کیفیت بالا
+• نحوه استفاده: دکمه QR را کلیک کنید یا متن را ارسال کنید
 
-� *Currency Exchange*
-• Live exchange rates to Iranian Rial (IRR)
-• Support for major world currencies
-• Updated every 24 hours
-• Usage: Click Currency button or use /currency command
+💱 *تبدیل ارز*
+• نرخ‌های زنده تبدیل به ریال ایران (IRR)
+• پشتیبانی از ارزهای اصلی جهان
+• به‌روزرسانی هر ۲۴ ساعت
+• نحوه استفاده: دکمه ارز را کلیک کنید یا از دستور /currency استفاده کنید
 
-�🔧 *Bot Commands*
-• /start - Show main menu
-• /help - Show this help
-• /menu - Return to main menu
-• /ping - Check bot status
-• /weather <city> - Get weather directly
-• /qr <text> - Generate QR code directly
-• /currency [code] - Get exchange rates
+🔧 *دستورات بات*
+• /start - نمایش منوی اصلی
+• /help - نمایش این راهنما
+• /menu - بازگشت به منوی اصلی
+• /ping - بررسی وضعیت بات
+• /weather <city> - دریافت وضعیت آب و هوا به‌طور مستقیم
+• /qr <text> - تولید کد QR به‌طور مستقیم
+• /currency [code] - دریافت نرخ‌های تبدیل
 
-💡 *Tips:*
-• Use buttons for easy navigation
-• Send plain text for quick actions
-• All features work instantly`;
+💡 *نکات:*
+• از دکمه‌ها برای ناوبری آسان استفاده کنید
+• متن ساده را برای اقدامات سریع ارسال کنید
+• تمام ویژگی‌ها به‌طور آنی کار می‌کنند`;
 
   const backButton = {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🔙 Back to Menu", callback_data: "back_to_menu" }],
+        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }],
       ],
     },
   };
@@ -388,9 +406,30 @@ function showHelpMenu(chatId) {
 
 // Menu command to show main menu anytime
 bot.onText(/\/menu/, (msg) => {
-  // Reuse the start command logic
-  const startMsg = { ...msg, text: "/start" };
-  bot.emit("message", startMsg);
+  const welcomeText = `🤖 *به دستیار تلگرام خوش آمدید!*
+
+لطفاً انتخاب کنید که چه کاری می‌خواهید انجام دهید:`;
+
+  const keyboard = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "🌤️ اطلاعات آب و هوا", callback_data: "weather_menu" },
+          { text: "📱 QR Code", callback_data: "qr_menu" },
+        ],
+        [
+          { text: "💱 نرخ ارز", callback_data: "currency_menu" },
+          { text: "🏓 پینگ بات", callback_data: "ping" },
+        ],
+        [{ text: "❓ راهنما", callback_data: "help" }],
+      ],
+    },
+  };
+
+  bot.sendMessage(msg.chat.id, welcomeText, {
+    parse_mode: "Markdown",
+    ...keyboard,
+  });
 });
 
 // Help command (simple version)
