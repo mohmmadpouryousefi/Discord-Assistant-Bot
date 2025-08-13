@@ -565,6 +565,12 @@ bot.on("message", async (msg) => {
     ) {
       const buttons = [];
 
+      // Add QR option for most text
+      buttons.push({
+        text: "📱 Generate QR Code",
+        callback_data: `qr_generate:${text}`,
+      });
+
       // Add weather option if it looks like a city
       if (isLikelyCity) {
         buttons.push({
