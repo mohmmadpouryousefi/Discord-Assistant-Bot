@@ -4,10 +4,14 @@ const QRCode = require("qrcode");
 const logger = require("./utils/logger");
 const { getWeatherForecast } = require("./requests/forecast");
 const CurrencyConverter = require("./utils/currency-converter");
+const CityAutocomplete = require("./utils/city-autocomplete");
 
 const TELEGRAM_BOT_TOKEN =
   config.bot.telegramToken || process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
+
+// Initialize city autocomplete
+const cityAutocomplete = new CityAutocomplete();
 
 // Helper function to create back button
 function createBackButton() {
@@ -192,12 +196,65 @@ bot.on("callback_query", async (callbackQuery) => {
 
   switch (data) {
     case "weather_menu":
+      // Show popular cities with search option
+      const popularCities = cityAutocomplete.getCitiesByRegion('iran').slice(0, 4);
+      const worldCities = [
+        { name: "London", country: "UK" },
+        { name: "Paris", country: "France" },
+        { name: "Dubai", country: "UAE" },
+        { name: "New York", country: "USA" }
+      ];
+
+      const weatherButtons = [];
+      
+      // Add Iranian cities
+      if (popularCities.length >= 2) {
+        weatherButtons.push([
+          { text: `🇮🇷 ${popularCities[0].name}`, callback_data: `weather_check:${popularCities[0].name}` },
+          { text: `🇮🇷 ${popularCities[1].name}`, callback_data: `weather_check:${popularCities[1].name}` }
+        ]);
+      }
+      
+      if (popularCities.length >= 4) {
+        weatherButtons.push([
+          { text: `🇮🇷 ${popularCities[2].name}`, callback_data: `weather_check:${popularCities[2].name}` },
+          { text: `🇮🇷 ${popularCities[3].name}`, callback_data: `weather_check:${popularCities[3].name}` }
+        ]);
+      }
+
+      // Add world cities
+      weatherButtons.push([
+        { text: `🇬🇧 ${worldCities[0].name}`, callback_data: `weather_check:${worldCities[0].name}` },
+        { text: `🇫🇷 ${worldCities[1].name}`, callback_data: `weather_check:${worldCities[1].name}` }
+      ]);
+      
+      weatherButtons.push([
+        { text: `🇦🇪 ${worldCities[2].name}`, callback_data: `weather_check:${worldCities[2].name}` },
+        { text: `🇺🇸 ${worldCities[3].name}`, callback_data: `weather_check:${worldCities[3].name}` }
+      ]);
+
+      // Add search option
+      weatherButtons.push([
+        { text: "🔍 جستجوی شهر", callback_data: "weather_search" }
+      ]);
+
+      // Add back button
+      weatherButtons.push([
+        { text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }
+      ]);
+
+      const weatherKeyboard = {
+        reply_markup: {
+          inline_keyboard: weatherButtons
+        }
+      };
+
       bot.sendMessage(
         chatId,
-        "🌤️ *اطلاعات آب و هوا*\n\nلطفاً نام شهری را برای دریافت اطلاعات آب و هوا ارسال کنید.\n\nمثال: London",
+        "🌤️ *اطلاعات آب و هوا*\n\nشهر مورد نظر خود را انتخاب کنید یا نام شهر را تایپ کنید:\n\n💡 *نکته:* برای جستجو، کافی است چند حرف اول نام شهر را بنویسید",
         {
           parse_mode: "Markdown",
-          ...createBackButton(),
+          ...weatherKeyboard,
         }
       );
       break;
@@ -250,6 +307,17 @@ bot.on("callback_query", async (callbackQuery) => {
       bot.sendMessage(chatId, "🏓 تست، بات فعال است.", createBackButton());
       break;
 
+    case "weather_search":
+      bot.sendMessage(
+        chatId,
+        "🔍 *جستجوی شهر*\n\nلطفاً نام شهر یا چند حرف اول آن را تایپ کنید:\n\nمثال: `vi` برای Vienna\nمثال: `teh` برای Tehran\nمثال: `lon` برای London",
+        {
+          parse_mode: "Markdown",
+          ...createBackButton(),
+        }
+      );
+      break;
+
     case "help":
       showHelpMenu(chatId);
       break;
@@ -285,12 +353,17 @@ bot.on("callback_query", async (callbackQuery) => {
         try {
           bot.sendChatAction(chatId, "typing");
           const forecast = await getWeatherForecast(location);
-          const response = `🌤️ *Weather in ${forecast.location.city}, ${forecast.location.country}*\n\n🌡️ *Temperature:* ${forecast.current.temperature}°C\n☁️ *Condition:* ${forecast.current.condition}\n💧 *Humidity:* ${forecast.current.humidity}%`;
-          bot.sendMessage(chatId, response, { parse_mode: "Markdown" });
+          const response = `🌤️ *وضع آب و هوا در ${forecast.location.city}, ${forecast.location.country}*\n\n🌡️ *دمای هوا:* ${forecast.current.temperature}°C\n☁️ *وضعیت:* ${forecast.current.condition}\n💧 *رطوبت:* ${forecast.current.humidity}%\n💨 *سرعت باد:* ${forecast.current.windSpeed} km/h\n🕐 *زمان محلی:* ${forecast.location.localTime}`;
+          
+          bot.sendMessage(chatId, response, { 
+            parse_mode: "Markdown",
+            ...createBackButton()
+          });
         } catch (error) {
           bot.sendMessage(
             chatId,
-            `❌ Sorry, couldn't get weather for "${location}"`
+            `❌ متأسفم، نتونستم اطلاعات آب و هوای "${location}" رو بگیرم`,
+            createBackButton()
           );
         }
       }
@@ -409,17 +482,60 @@ bot.on("message", async (msg) => {
 
   // Auto-detect what user wants based on input
   if (text.length > 0) {
-    // If it looks like a URL or contains common QR text patterns
+    // Check if it might be a city search (2-50 characters, mostly letters)
+    const cityPattern = /^[a-zA-Z\s]{2,50}$/;
+    const isLikelyCity = cityPattern.test(text) && !text.includes(".");
+
+    if (isLikelyCity && text.length >= 2) {
+      // Get city suggestions
+      const suggestions = cityAutocomplete.findSuggestions(text, 6);
+      
+      if (suggestions.length > 0) {
+        const suggestionKeyboard = cityAutocomplete.createSuggestionKeyboard(suggestions);
+        
+        bot.sendMessage(
+          chatId,
+          `🔍 *پیشنهادات شهر برای "${text}":*\n\nشهر مورد نظر خود را انتخاب کنید:`,
+          {
+            parse_mode: "Markdown",
+            ...suggestionKeyboard,
+          }
+        );
+        return;
+      } else {
+        // No suggestions found, try direct weather search
+        try {
+          bot.sendChatAction(chatId, "typing");
+          const forecast = await getWeatherForecast(text);
+          const response = `🌤️ *وضع آب و هوا در ${forecast.location.city}, ${forecast.location.country}*\n\n🌡️ *دمای هوا:* ${forecast.current.temperature}°C\n☁️ *وضعیت:* ${forecast.current.condition}\n💧 *رطوبت:* ${forecast.current.humidity}%\n💨 *سرعت باد:* ${forecast.current.windSpeed} km/h\n🕐 *زمان محلی:* ${forecast.location.localTime}`;
+          
+          bot.sendMessage(chatId, response, { 
+            parse_mode: "Markdown",
+            ...createBackButton()
+          });
+          return;
+        } catch (error) {
+          // City not found, show search suggestions
+          bot.sendMessage(
+            chatId,
+            `❌ شهر "${text}" پیدا نشد.\n\n💡 *پیشنهاد:* چند حرف اول نام شهر را تایپ کنید تا پیشنهادات را ببینید.\n\nمثال: \`vi\` برای Vienna، \`teh\` برای Tehran`,
+            {
+              parse_mode: "Markdown",
+              ...createBackButton(),
+            }
+          );
+          return;
+        }
+      }
+    }
+
+    // Handle other types of input (URLs, long text, etc.)
     if (
       text.includes("http") ||
       text.includes(".com") ||
       text.includes("www") ||
       text.length < 100
     ) {
-      // Check if it might be a city name (simple check)
-      const cityPattern = /^[a-zA-Z\s]{2,50}$/;
-      const isLikelyCity = cityPattern.test(text) && !text.includes(".");
-
       const buttons = [];
 
       // Add QR option for most text
