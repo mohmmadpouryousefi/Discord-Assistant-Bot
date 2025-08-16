@@ -574,7 +574,7 @@ bot.on("message", async (msg) => {
       // Add weather option if it looks like a city
       if (isLikelyCity) {
         buttons.push({
-          text: "🌤️ Check Weather",
+          text: "🌤️ وضعیت آب و هوا",
           callback_data: `weather_check:${text}`,
         });
       }
@@ -587,7 +587,7 @@ bot.on("message", async (msg) => {
 
       bot.sendMessage(
         chatId,
-        `I received: "${text}"\n\nWhat would you like to do?`,
+        `من اطلاعات: "${text}"\n\nچه کاری می‌خواهید انجام دهید؟`,
         keyboard
       );
     } else {
@@ -597,7 +597,7 @@ bot.on("message", async (msg) => {
           inline_keyboard: [
             [
               {
-                text: "📱 Generate QR Code",
+                text: "📱 تولید کد QR",
                 callback_data: `qr_generate:${text}`,
               },
             ],
@@ -606,7 +606,7 @@ bot.on("message", async (msg) => {
       };
       bot.sendMessage(
         chatId,
-        `Would you like to generate a QR code for this text?`,
+        `آیا می‌خواهید برای این متن یک کد QR تولید کنید؟`,
         keyboard
       );
     }
@@ -615,7 +615,7 @@ bot.on("message", async (msg) => {
 
 // Ping command
 bot.onText(/\/ping/, (msg) => {
-  bot.sendMessage(msg.chat.id, "🏓 Pong! Bot is alive and running.");
+  bot.sendMessage(msg.chat.id, "🏓 بات در حال کار است.");
 });
 
 // Error handling
@@ -628,4 +628,4 @@ bot.on("polling_error", (error) => {
   logger.error("Telegram polling error:", error);
 });
 
-logger.info("🚀 Telegram bot started successfully!");
+logger.info("🚀 بات تلگرام با موفقیت راه‌اندازی شد!");
