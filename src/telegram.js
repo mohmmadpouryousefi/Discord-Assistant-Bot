@@ -567,7 +567,7 @@ bot.on("message", async (msg) => {
 
       // Add QR option for most text
       buttons.push({
-        text: "📱 Generate QR Code",
+        text: "📱 تولید کد QR",
         callback_data: `qr_generate:${text}`,
       });
 
@@ -612,20 +612,17 @@ bot.on("message", async (msg) => {
     }
   }
 });
-
 // Ping command
 bot.onText(/\/ping/, (msg) => {
   bot.sendMessage(msg.chat.id, "🏓 بات در حال کار است.");
 });
-
 // Error handling
 bot.on("error", (error) => {
-  logger.error("Telegram bot error:", error);
+  logger.error("خطای بات تلگرام:", error);
 });
-
 // Polling error handling
 bot.on("polling_error", (error) => {
-  logger.error("Telegram polling error:", error);
+  logger.error("خطای نظرسنجی:", error);
 });
 
 logger.info("🚀 بات تلگرام با موفقیت راه‌اندازی شد!");
