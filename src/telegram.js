@@ -367,7 +367,7 @@ bot.on("callback_query", async (callbackQuery) => {
             },
           });
           bot.sendPhoto(chatId, qrBuffer, {
-            caption: `📱 QR Code for: "${text}"`,
+            caption: `📱 QR Code برای: "${text}"`,
           });
         } catch (error) {
           bot.sendMessage(chatId, "❌ نتونستم کد QR رو تولید کنم");
@@ -428,18 +428,18 @@ bot.on("callback_query", async (callbackQuery) => {
             message += `💰 1 ${currencyCode} = *${rate} IRR*\n\n`;
           });
 
-          message += `📅 *Updated:* ${new Date().toLocaleDateString(
+          message += `📅 *بروزرسانی:* ${new Date().toLocaleDateString(
             "fa-IR"
           )}\n`;
-          message += `⏰ *Time:* ${new Date().toLocaleTimeString("fa-IR")}\n`;
-          message += `📡 *Source:* currencylayer.com`;
+          message += `⏰ *زمان:* ${new Date().toLocaleTimeString("fa-IR")}\n`;
+          message += `📡 *منبع:* currencylayer.com`;
 
           bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
         } catch (error) {
-          logger.error(`Telegram currency error: ${error.message}`);
+          logger.error(`خطای ارز تلگرام: ${error.message}`);
           bot.sendMessage(
             chatId,
-            "❌ Sorry, couldn't fetch currency rates. Please try again later."
+            "❌ متأسفم، نتونستم نرخ‌های ارز رو بگیرم. لطفاً بعداً امتحان کنید."
           );
         }
       }
