@@ -13,6 +13,38 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 // Initialize city autocomplete
 const cityAutocomplete = new CityAutocomplete();
 
+// Get reminder system from main bot
+let reminderSystem;
+setTimeout(() => {
+  reminderSystem = require('./index').reminderSystem;
+  if (reminderSystem) {
+    // Set up Telegram reminder callback
+    const originalCallback = reminderSystem.onReminderTrigger;
+    reminderSystem.setReminderCallback(async (reminder) => {
+      // Handle Discord reminders
+      if (originalCallback) {
+        await originalCallback(reminder);
+      }
+      
+      // Handle Telegram reminders
+      if (reminder.platform === 'telegram' && reminder.channelId) {
+        try {
+          const message = `⏰ *Reminder!*\n\n${reminder.message}\n\n🕐 *Set:* ${reminderSystem.formatReminderTime(reminder.createdAt)}\n🆔 *ID:* #${reminder.id}`;
+          
+          await bot.sendMessage(reminder.channelId, message, {
+            parse_mode: 'Markdown',
+            ...createBackButton()
+          });
+          
+          logger.info(`Telegram reminder notification sent for reminder ${reminder.id}`);
+        } catch (error) {
+          logger.error(`Error sending Telegram reminder: ${error.message}`);
+        }
+      }
+    });
+  }
+}, 1000); // Wait for main bot to initialize
+
 // Helper function to create back button
 function createBackButton() {
   return {
@@ -39,9 +71,12 @@ function showMainMenu(chatId) {
         ],
         [
           { text: "💱 نرخ ارز", callback_data: "currency_menu" },
-          { text: "🏓 پینگ بات", callback_data: "ping" },
+          { text: "⏰ یادآوری", callback_data: "reminder_menu" },
         ],
-        [{ text: "❓ راهنما", callback_data: "help" }],
+        [
+          { text: "🏓 پینگ بات", callback_data: "ping" },
+          { text: "❓ راهنما", callback_data: "help" },
+        ],
       ],
     },
   };
@@ -118,6 +153,130 @@ bot.onText(/\/qr (.+)/, async (msg, match) => {
   } catch (error) {
     logger.error(`Telegram QR error: ${error.message}`);
     bot.sendMessage(chatId, "❌ Failed to generate QR code");
+  }
+});
+
+// Reminder command for Telegram
+bot.onText(/\/remind (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const input = match[1].trim();
+  
+  if (!reminderSystem) {
+    bot.sendMessage(chatId, "❌ سیستم یادآوری در حال حاضر در دسترس نیست");
+    return;
+  }
+
+  // Parse input: first word is time, rest is message
+  const parts = input.split(' ');
+  if (parts.length < 2) {
+    bot.sendMessage(
+      chatId,
+      "❌ فرمت نادرست!\n\nاستفاده: `/remind <زمان> <پیام>`\n\nمثال: `/remind 30m خرید نان`",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  const timeString = parts[0];
+  const message = parts.slice(1).join(' ');
+
+  try {
+    bot.sendChatAction(chatId, "typing");
+
+    const result = reminderSystem.createReminder(
+      chatId.toString(),
+      message,
+      timeString,
+      'telegram',
+      chatId
+    );
+
+    if (result.success) {
+      const responseMessage = `✅ *یادآوری تنظیم شد!*\n\n💬 *پیام:* ${message}\n🕐 *زمان:* ${reminderSystem.formatReminderTime(result.reminder.reminderTime)}\n⏳ *در:* ${result.timeUntil}\n🆔 *شناسه:* #${result.reminder.id}\n\n💡 برای مشاهده همه یادآوری‌ها: \`/reminders\`\n💡 برای لغو: \`/cancel ${result.reminder.id}\``;
+
+      bot.sendMessage(chatId, responseMessage, {
+        parse_mode: "Markdown",
+        ...createBackButton()
+      });
+
+      logger.info(`Telegram reminder created: ${result.reminder.id} for chat ${chatId}`);
+    } else {
+      bot.sendMessage(
+        chatId,
+        `❌ ${result.error}\n\n💡 *فرمت‌های معتبر:*\n• \`5m\`, \`30m\` - دقیقه\n• \`2h\`, \`3h\` - ساعت\n• \`1d\`, \`2d\` - روز\n• \`tomorrow\` - فردا\n• \`5pm\`, \`14:30\` - ساعت مشخص`,
+        { parse_mode: "Markdown" }
+      );
+    }
+  } catch (error) {
+    logger.error(`Telegram reminder error: ${error.message}`);
+    bot.sendMessage(chatId, "❌ خطا در تنظیم یادآوری. لطفاً دوباره تلاش کنید.");
+  }
+});
+
+// View reminders command for Telegram
+bot.onText(/\/reminders/, (msg) => {
+  const chatId = msg.chat.id;
+  
+  if (!reminderSystem) {
+    bot.sendMessage(chatId, "❌ سیستم یادآوری در دسترس نیست");
+    return;
+  }
+
+  const userReminders = reminderSystem.getUserReminders(chatId.toString());
+  
+  if (userReminders.length === 0) {
+    bot.sendMessage(
+      chatId,
+      "📝 *یادآوری‌های شما*\n\nشما هیچ یادآوری فعالی ندارید.\n\n💡 برای ایجاد یادآوری: `/remind <زمان> <پیام>`",
+      { parse_mode: "Markdown" }
+    );
+  } else {
+    let message = `📝 *یادآوری‌های فعال شما (${userReminders.length}):*\n\n`;
+    
+    userReminders.slice(0, 10).forEach(reminder => {
+      const timeUntil = reminderSystem.getTimeUntilString(reminder.reminderTime);
+      const formattedTime = reminderSystem.formatReminderTime(reminder.reminderTime);
+      
+      message += `⏰ *#${reminder.id}* - ${reminder.message}\n`;
+      message += `📅 ${formattedTime}\n`;
+      message += `⏳ ${timeUntil}\n\n`;
+    });
+
+    if (userReminders.length > 10) {
+      message += `... و ${userReminders.length - 10} یادآوری دیگر\n\n`;
+    }
+
+    message += `💡 برای لغو یادآوری: \`/cancel <شناسه>\``;
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  }
+});
+
+// Cancel reminder command for Telegram
+bot.onText(/\/cancel (\d+)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const reminderId = parseInt(match[1]);
+  
+  if (!reminderSystem) {
+    bot.sendMessage(chatId, "❌ سیستم یادآوری در دسترس نیست");
+    return;
+  }
+
+  const success = reminderSystem.cancelReminder(reminderId, chatId.toString());
+  
+  if (success) {
+    bot.sendMessage(
+      chatId,
+      `✅ یادآوری #${reminderId} با موفقیت لغو شد.\n\n💡 برای مشاهده یادآوری‌های باقی‌مانده: \`/reminders\``,
+      { parse_mode: "Markdown" }
+    );
+    logger.info(`Telegram reminder ${reminderId} cancelled by chat ${chatId}`);
+  } else {
+    bot.sendMessage(
+      chatId,
+      `❌ یادآوری #${reminderId} پیدا نشد یا متعلق به شما نیست.\n\n💡 برای مشاهده یادآوری‌هایتان: \`/reminders\``,
+      { parse_mode: "Markdown" }
+    );
   }
 });
 
@@ -329,6 +488,78 @@ bot.on("callback_query", async (callbackQuery) => {
       );
       break;
 
+    case "reminder_menu":
+      const reminderButtons = [
+        [
+          { text: "➕ یادآوری جدید", callback_data: "reminder_new" },
+          { text: "📝 یادآوری‌های من", callback_data: "reminder_list" }
+        ],
+        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }]
+      ];
+
+      bot.sendMessage(
+        chatId,
+        "⏰ *سیستم یادآوری*\n\nبا این سیستم می‌توانید یادآوری‌های شخصی تنظیم کنید.\n\n💡 *مثال‌ها:*\n• `30m خرید نان`\n• `2h تماس با پزشک`\n• `tomorrow جلسه کاری`\n• `5pm مصرف دارو`",
+        {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: reminderButtons }
+        }
+      );
+      break;
+
+    case "reminder_new":
+      bot.sendMessage(
+        chatId,
+        "➕ *یادآوری جدید*\n\nلطفاً یادآوری خود را به این فرمت ارسال کنید:\n\n`/remind <زمان> <پیام>`\n\n🕐 *فرمت‌های زمان:*\n• `5m`, `30m` - دقیقه\n• `2h`, `3h` - ساعت  \n• `1d`, `2d` - روز\n• `tomorrow` - فردا\n• `5pm`, `14:30` - ساعت مشخص\n\n💡 *مثال:*\n`/remind 30m خرید نان`\n`/remind 2h تماس با دکتر`\n`/remind tomorrow جلسه مهم`",
+        {
+          parse_mode: "Markdown",
+          ...createBackButton()
+        }
+      );
+      break;
+
+    case "reminder_list":
+      if (!reminderSystem) {
+        bot.sendMessage(chatId, "❌ سیستم یادآوری در حال حاضر در دسترس نیست", createBackButton());
+        break;
+      }
+
+      const userReminders = reminderSystem.getUserReminders(chatId.toString());
+      
+      if (userReminders.length === 0) {
+        bot.sendMessage(
+          chatId,
+          "📝 *یادآوری‌های شما*\n\nشما هیچ یادآوری فعالی ندارید.\n\n💡 برای ایجاد یادآوری جدید از دستور `/remind` استفاده کنید.",
+          {
+            parse_mode: "Markdown",
+            ...createBackButton()
+          }
+        );
+      } else {
+        let message = `📝 *یادآوری‌های فعال شما (${userReminders.length}):*\n\n`;
+        
+        userReminders.slice(0, 10).forEach((reminder, index) => {
+          const timeUntil = reminderSystem.getTimeUntilString(reminder.reminderTime);
+          const formattedTime = reminderSystem.formatReminderTime(reminder.reminderTime);
+          
+          message += `⏰ *#${reminder.id}* - ${reminder.message}\n`;
+          message += `📅 ${formattedTime}\n`;
+          message += `⏳ ${timeUntil}\n\n`;
+        });
+
+        if (userReminders.length > 10) {
+          message += `... و ${userReminders.length - 10} یادآوری دیگر`;
+        }
+
+        message += `\n💡 برای لغو یادآوری: \`/cancel <شناسه>\``;
+
+        bot.sendMessage(chatId, message, {
+          parse_mode: "Markdown",
+          ...createBackButton()
+        });
+      }
+      break;
+
     case "ping":
       bot.sendMessage(chatId, "🏓 تست، بات فعال است.", createBackButton());
       break;
@@ -454,33 +685,49 @@ function showHelpMenu(chatId) {
 
 🌤️ *اطلاعات آب و هوا*
 • دریافت وضعیت کنونی آب و هوا برای هر شهر
-• نمایش دما، رطوبت، سرعت باد
-• نحوه استفاده: دکمه آب و هوا را کلیک کنید یا نام شهر را تایپ کنید
+• جستجوی هوشمند شهرها با تایپ چند حرف
+• نحوه استفاده: دکمه آب و هوا یا تایپ نام شهر
 
 📱 *تولید کننده کد QR*
-• تبدیل متن/URL به کد QR
-• خروجی تصویر با کیفیت بالا
-• نحوه استفاده: دکمه QR را کلیک کنید یا متن را ارسال کنید
+• تبدیل متن/URL به کد QR با کیفیت بالا
+• نحوه استفاده: دکمه QR یا ارسال متن
 
 💱 *تبدیل ارز*
 • نرخ‌های زنده تبدیل به ریال ایران (IRR)
 • پشتیبانی از ارزهای اصلی جهان
 • به‌روزرسانی هر ۲۴ ساعت
-• نحوه استفاده: دکمه ارز را کلیک کنید یا از دستور /currency استفاده کنید
+
+⏰ *سیستم یادآوری*
+• تنظیم یادآوری‌های شخصی با زمان‌بندی انعطاف‌پذیر
+• پشتیبانی از فرمت‌های مختلف زمان
+• مدیریت و لغو یادآوری‌ها
 
 🔧 *دستورات بات*
 • /start - نمایش منوی اصلی
 • /help - نمایش این راهنما
 • /menu - بازگشت به منوی اصلی
 • /ping - بررسی وضعیت بات
-• /weather <city> - دریافت وضعیت آب و هوا به‌طور مستقیم
-• /qr <text> - تولید کد QR به‌طور مستقیم
-• /currency [code] - دریافت نرخ‌های تبدیل
+
+🌤️ *دستورات آب و هوا*
+• /weather <شهر> - آب و هوای مستقیم
+• تایپ نام شهر - پیشنهادات هوشمند
+
+📱 *دستورات QR*
+• /qr <متن> - تولید QR مستقیم
+• ارسال متن - پیشنهاد تولید QR
+
+💱 *دستورات ارز*
+• /currency [کد] - نرخ‌های تبدیل
+
+⏰ *دستورات یادآوری*
+• /remind <زمان> <پیام> - یادآوری جدید
+• /reminders - مشاهده یادآوری‌ها
+• /cancel <شناسه> - لغو یادآوری
 
 💡 *نکات:*
 • از دکمه‌ها برای ناوبری آسان استفاده کنید
-• متن ساده را برای اقدامات سریع ارسال کنید
-• تمام ویژگی‌ها به‌طور آنی کار می‌کنند`;
+• تمام ویژگی‌ها به‌طور آنی کار می‌کنند
+• یادآوری‌ها در هر دو پلتفرم فعال هستند`;
 
   bot.sendMessage(chatId, helpText, {
     parse_mode: "Markdown",

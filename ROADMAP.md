@@ -28,7 +28,7 @@ This document outlines the roadmap for transforming our Discord bot from a basic
 - [ ] **Health Checks** - Bot status monitoring
 
 #### **Essential Utility Commands**
-- [ ] `/remind <time> <message>` - Personal reminder system
+- [x] `/remind <time> <message>` - Personal reminder system
 - [ ] `/poll <question> [options]` - Interactive polls with reactions
 - [ ] `/translate <text> [language]` - Multi-language translation
 - [ ] `/calculator <expression>` - Advanced math calculations
