@@ -4,7 +4,13 @@ const logger = require("./utils/logger");
 const KeepAliveServer = require("./utils/keep-alive");
 const ReminderSystem = require("./utils/reminder-system");
 
-const { Client, Collection, Events, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const {
+  Client,
+  Collection,
+  Events,
+  GatewayIntentBits,
+  EmbedBuilder,
+} = require("discord.js");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -18,31 +24,31 @@ const reminderSystem = new ReminderSystem();
 // Set up reminder callback to send notifications
 reminderSystem.setReminderCallback(async (reminder) => {
   try {
-    if (reminder.platform === 'discord' && reminder.channelId) {
+    if (reminder.platform === "discord" && reminder.channelId) {
       const channel = await client.channels.fetch(reminder.channelId);
       if (channel) {
         const embed = new EmbedBuilder()
-          .setColor('#ffff00')
-          .setTitle('⏰ Reminder!')
+          .setColor("#ffff00")
+          .setTitle("⏰ Reminder!")
           .setDescription(reminder.message)
           .addFields(
             {
-              name: '📅 Set',
+              name: "📅 Set",
               value: reminderSystem.formatReminderTime(reminder.createdAt),
-              inline: true
+              inline: true,
             },
             {
-              name: '🆔 ID',
+              name: "🆔 ID",
               value: `#${reminder.id}`,
-              inline: true
+              inline: true,
             }
           )
-          .setFooter({ text: 'This reminder has been completed' })
+          .setFooter({ text: "This reminder has been completed" })
           .setTimestamp();
 
         await channel.send({
           content: `<@${reminder.userId}>`,
-          embeds: [embed]
+          embeds: [embed],
         });
 
         logger.info(`Reminder notification sent for reminder ${reminder.id}`);

@@ -16,7 +16,7 @@ const cityAutocomplete = new CityAutocomplete();
 // Get reminder system from main bot
 let reminderSystem;
 setTimeout(() => {
-  reminderSystem = require('./index').reminderSystem;
+  reminderSystem = require("./index").reminderSystem;
   if (reminderSystem) {
     // Set up Telegram reminder callback
     const originalCallback = reminderSystem.onReminderTrigger;
@@ -25,18 +25,24 @@ setTimeout(() => {
       if (originalCallback) {
         await originalCallback(reminder);
       }
-      
+
       // Handle Telegram reminders
-      if (reminder.platform === 'telegram' && reminder.channelId) {
+      if (reminder.platform === "telegram" && reminder.channelId) {
         try {
-          const message = `⏰ *Reminder!*\n\n${reminder.message}\n\n🕐 *Set:* ${reminderSystem.formatReminderTime(reminder.createdAt)}\n🆔 *ID:* #${reminder.id}`;
-          
+          const message = `⏰ *Reminder!*\n\n${
+            reminder.message
+          }\n\n🕐 *Set:* ${reminderSystem.formatReminderTime(
+            reminder.createdAt
+          )}\n🆔 *ID:* #${reminder.id}`;
+
           await bot.sendMessage(reminder.channelId, message, {
-            parse_mode: 'Markdown',
-            ...createBackButton()
+            parse_mode: "Markdown",
+            ...createBackButton(),
           });
-          
-          logger.info(`Telegram reminder notification sent for reminder ${reminder.id}`);
+
+          logger.info(
+            `Telegram reminder notification sent for reminder ${reminder.id}`
+          );
         } catch (error) {
           logger.error(`Error sending Telegram reminder: ${error.message}`);
         }
@@ -160,14 +166,14 @@ bot.onText(/\/qr (.+)/, async (msg, match) => {
 bot.onText(/\/remind (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const input = match[1].trim();
-  
+
   if (!reminderSystem) {
     bot.sendMessage(chatId, "❌ سیستم یادآوری در حال حاضر در دسترس نیست");
     return;
   }
 
   // Parse input: first word is time, rest is message
-  const parts = input.split(' ');
+  const parts = input.split(" ");
   if (parts.length < 2) {
     bot.sendMessage(
       chatId,
@@ -178,7 +184,7 @@ bot.onText(/\/remind (.+)/, async (msg, match) => {
   }
 
   const timeString = parts[0];
-  const message = parts.slice(1).join(' ');
+  const message = parts.slice(1).join(" ");
 
   try {
     bot.sendChatAction(chatId, "typing");
@@ -187,19 +193,27 @@ bot.onText(/\/remind (.+)/, async (msg, match) => {
       chatId.toString(),
       message,
       timeString,
-      'telegram',
+      "telegram",
       chatId
     );
 
     if (result.success) {
-      const responseMessage = `✅ *یادآوری تنظیم شد!*\n\n💬 *پیام:* ${message}\n🕐 *زمان:* ${reminderSystem.formatReminderTime(result.reminder.reminderTime)}\n⏳ *در:* ${result.timeUntil}\n🆔 *شناسه:* #${result.reminder.id}\n\n💡 برای مشاهده همه یادآوری‌ها: \`/reminders\`\n💡 برای لغو: \`/cancel ${result.reminder.id}\``;
+      const responseMessage = `✅ *یادآوری تنظیم شد!*\n\n💬 *پیام:* ${message}\n🕐 *زمان:* ${reminderSystem.formatReminderTime(
+        result.reminder.reminderTime
+      )}\n⏳ *در:* ${result.timeUntil}\n🆔 *شناسه:* #${
+        result.reminder.id
+      }\n\n💡 برای مشاهده همه یادآوری‌ها: \`/reminders\`\n💡 برای لغو: \`/cancel ${
+        result.reminder.id
+      }\``;
 
       bot.sendMessage(chatId, responseMessage, {
         parse_mode: "Markdown",
-        ...createBackButton()
+        ...createBackButton(),
       });
 
-      logger.info(`Telegram reminder created: ${result.reminder.id} for chat ${chatId}`);
+      logger.info(
+        `Telegram reminder created: ${result.reminder.id} for chat ${chatId}`
+      );
     } else {
       bot.sendMessage(
         chatId,
@@ -216,14 +230,14 @@ bot.onText(/\/remind (.+)/, async (msg, match) => {
 // View reminders command for Telegram
 bot.onText(/\/reminders/, (msg) => {
   const chatId = msg.chat.id;
-  
+
   if (!reminderSystem) {
     bot.sendMessage(chatId, "❌ سیستم یادآوری در دسترس نیست");
     return;
   }
 
   const userReminders = reminderSystem.getUserReminders(chatId.toString());
-  
+
   if (userReminders.length === 0) {
     bot.sendMessage(
       chatId,
@@ -232,11 +246,15 @@ bot.onText(/\/reminders/, (msg) => {
     );
   } else {
     let message = `📝 *یادآوری‌های فعال شما (${userReminders.length}):*\n\n`;
-    
-    userReminders.slice(0, 10).forEach(reminder => {
-      const timeUntil = reminderSystem.getTimeUntilString(reminder.reminderTime);
-      const formattedTime = reminderSystem.formatReminderTime(reminder.reminderTime);
-      
+
+    userReminders.slice(0, 10).forEach((reminder) => {
+      const timeUntil = reminderSystem.getTimeUntilString(
+        reminder.reminderTime
+      );
+      const formattedTime = reminderSystem.formatReminderTime(
+        reminder.reminderTime
+      );
+
       message += `⏰ *#${reminder.id}* - ${reminder.message}\n`;
       message += `📅 ${formattedTime}\n`;
       message += `⏳ ${timeUntil}\n\n`;
@@ -256,14 +274,14 @@ bot.onText(/\/reminders/, (msg) => {
 bot.onText(/\/cancel (\d+)/, (msg, match) => {
   const chatId = msg.chat.id;
   const reminderId = parseInt(match[1]);
-  
+
   if (!reminderSystem) {
     bot.sendMessage(chatId, "❌ سیستم یادآوری در دسترس نیست");
     return;
   }
 
   const success = reminderSystem.cancelReminder(reminderId, chatId.toString());
-  
+
   if (success) {
     bot.sendMessage(
       chatId,
@@ -492,9 +510,9 @@ bot.on("callback_query", async (callbackQuery) => {
       const reminderButtons = [
         [
           { text: "➕ یادآوری جدید", callback_data: "reminder_new" },
-          { text: "📝 یادآوری‌های من", callback_data: "reminder_list" }
+          { text: "📝 یادآوری‌های من", callback_data: "reminder_list" },
         ],
-        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }]
+        [{ text: "🔙 بازگشت به منو", callback_data: "back_to_menu" }],
       ];
 
       bot.sendMessage(
@@ -502,7 +520,7 @@ bot.on("callback_query", async (callbackQuery) => {
         "⏰ *سیستم یادآوری*\n\nبا این سیستم می‌توانید یادآوری‌های شخصی تنظیم کنید.\n\n💡 *مثال‌ها:*\n• `30m خرید نان`\n• `2h تماس با پزشک`\n• `tomorrow جلسه کاری`\n• `5pm مصرف دارو`",
         {
           parse_mode: "Markdown",
-          reply_markup: { inline_keyboard: reminderButtons }
+          reply_markup: { inline_keyboard: reminderButtons },
         }
       );
       break;
@@ -513,35 +531,43 @@ bot.on("callback_query", async (callbackQuery) => {
         "➕ *یادآوری جدید*\n\nلطفاً یادآوری خود را به این فرمت ارسال کنید:\n\n`/remind <زمان> <پیام>`\n\n🕐 *فرمت‌های زمان:*\n• `5m`, `30m` - دقیقه\n• `2h`, `3h` - ساعت  \n• `1d`, `2d` - روز\n• `tomorrow` - فردا\n• `5pm`, `14:30` - ساعت مشخص\n\n💡 *مثال:*\n`/remind 30m خرید نان`\n`/remind 2h تماس با دکتر`\n`/remind tomorrow جلسه مهم`",
         {
           parse_mode: "Markdown",
-          ...createBackButton()
+          ...createBackButton(),
         }
       );
       break;
 
     case "reminder_list":
       if (!reminderSystem) {
-        bot.sendMessage(chatId, "❌ سیستم یادآوری در حال حاضر در دسترس نیست", createBackButton());
+        bot.sendMessage(
+          chatId,
+          "❌ سیستم یادآوری در حال حاضر در دسترس نیست",
+          createBackButton()
+        );
         break;
       }
 
       const userReminders = reminderSystem.getUserReminders(chatId.toString());
-      
+
       if (userReminders.length === 0) {
         bot.sendMessage(
           chatId,
           "📝 *یادآوری‌های شما*\n\nشما هیچ یادآوری فعالی ندارید.\n\n💡 برای ایجاد یادآوری جدید از دستور `/remind` استفاده کنید.",
           {
             parse_mode: "Markdown",
-            ...createBackButton()
+            ...createBackButton(),
           }
         );
       } else {
         let message = `📝 *یادآوری‌های فعال شما (${userReminders.length}):*\n\n`;
-        
+
         userReminders.slice(0, 10).forEach((reminder, index) => {
-          const timeUntil = reminderSystem.getTimeUntilString(reminder.reminderTime);
-          const formattedTime = reminderSystem.formatReminderTime(reminder.reminderTime);
-          
+          const timeUntil = reminderSystem.getTimeUntilString(
+            reminder.reminderTime
+          );
+          const formattedTime = reminderSystem.formatReminderTime(
+            reminder.reminderTime
+          );
+
           message += `⏰ *#${reminder.id}* - ${reminder.message}\n`;
           message += `📅 ${formattedTime}\n`;
           message += `⏳ ${timeUntil}\n\n`;
@@ -555,7 +581,7 @@ bot.on("callback_query", async (callbackQuery) => {
 
         bot.sendMessage(chatId, message, {
           parse_mode: "Markdown",
-          ...createBackButton()
+          ...createBackButton(),
         });
       }
       break;

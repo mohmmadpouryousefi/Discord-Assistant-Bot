@@ -4,17 +4,34 @@
  * Supports natural language time parsing and flexible scheduling
  */
 
-const cron = require('node-cron');
-const logger = require('./logger');
+const cron = require("node-cron");
+const logger = require("./logger");
 
 class ReminderSystem {
   constructor() {
+    // Singleton pattern - return existing instance if already created
+    if (ReminderSystem.instance) {
+      return ReminderSystem.instance;
+    }
+
     this.reminders = new Map(); // In-memory storage (will upgrade to database later)
     this.reminderCounter = 1;
     this.scheduledTasks = new Map();
-    
+    this.onReminderTrigger = null;
+
     // Start cleanup task - runs every hour to remove old reminders
     this.startCleanupTask();
+
+    // Store the instance
+    ReminderSystem.instance = this;
+  }
+
+  /**
+   * Set callback function for reminder notifications
+   * @param {Function} callback - Function to call when reminder triggers
+   */
+  setReminderCallback(callback) {
+    this.onReminderTrigger = callback;
   }
 
   /**
@@ -27,23 +44,25 @@ class ReminderSystem {
     const input = timeString.toLowerCase().trim();
 
     // Handle relative time (5m, 2h, 3d, etc.)
-    const relativeMatch = input.match(/^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)$/);
+    const relativeMatch = input.match(
+      /^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)$/
+    );
     if (relativeMatch) {
       const amount = parseInt(relativeMatch[1]);
       const unit = relativeMatch[2];
-      
+
       const date = new Date(now);
-      
-      if (['m', 'min', 'mins', 'minute', 'minutes'].includes(unit)) {
+
+      if (["m", "min", "mins", "minute", "minutes"].includes(unit)) {
         date.setMinutes(date.getMinutes() + amount);
-      } else if (['h', 'hr', 'hrs', 'hour', 'hours'].includes(unit)) {
+      } else if (["h", "hr", "hrs", "hour", "hours"].includes(unit)) {
         date.setHours(date.getHours() + amount);
-      } else if (['d', 'day', 'days'].includes(unit)) {
+      } else if (["d", "day", "days"].includes(unit)) {
         date.setDate(date.getDate() + amount);
-      } else if (['w', 'week', 'weeks'].includes(unit)) {
-        date.setDate(date.getDate() + (amount * 7));
+      } else if (["w", "week", "weeks"].includes(unit)) {
+        date.setDate(date.getDate() + amount * 7);
       }
-      
+
       return date;
     }
 
@@ -53,39 +72,39 @@ class ReminderSystem {
       let hours = parseInt(timeMatch[1]);
       const minutes = parseInt(timeMatch[2]) || 0;
       const period = timeMatch[3];
-      
-      if (period === 'pm' && hours !== 12) hours += 12;
-      if (period === 'am' && hours === 12) hours = 0;
-      
+
+      if (period === "pm" && hours !== 12) hours += 12;
+      if (period === "am" && hours === 12) hours = 0;
+
       const date = new Date(now);
       date.setHours(hours, minutes, 0, 0);
-      
+
       // If time has passed today, set for tomorrow
       if (date <= now) {
         date.setDate(date.getDate() + 1);
       }
-      
+
       return date;
     }
 
     // Handle common phrases
     const phraseMap = {
-      'tomorrow': () => {
+      tomorrow: () => {
         const date = new Date(now);
         date.setDate(date.getDate() + 1);
         date.setHours(9, 0, 0, 0); // Default to 9 AM
         return date;
       },
-      'next week': () => {
+      "next week": () => {
         const date = new Date(now);
         date.setDate(date.getDate() + 7);
         return date;
       },
-      'tonight': () => {
+      tonight: () => {
         const date = new Date(now);
         date.setHours(20, 0, 0, 0); // 8 PM
         return date;
-      }
+      },
     };
 
     if (phraseMap[input]) {
@@ -114,21 +133,28 @@ class ReminderSystem {
    * @param {string} channelId - Channel/Chat ID where to send reminder
    * @returns {Object} Result object with success/error info
    */
-  createReminder(userId, message, timeString, platform = 'discord', channelId = null) {
+  createReminder(
+    userId,
+    message,
+    timeString,
+    platform = "discord",
+    channelId = null
+  ) {
     try {
       const reminderTime = this.parseTime(timeString);
-      
+
       if (!reminderTime) {
         return {
           success: false,
-          error: 'Invalid time format. Try: "5m", "2h", "tomorrow", "5pm", etc.'
+          error:
+            'Invalid time format. Try: "5m", "2h", "tomorrow", "5pm", etc.',
         };
       }
 
       if (reminderTime <= new Date()) {
         return {
           success: false,
-          error: 'Reminder time must be in the future'
+          error: "Reminder time must be in the future",
         };
       }
 
@@ -141,7 +167,7 @@ class ReminderSystem {
         platform,
         channelId,
         createdAt: new Date(),
-        completed: false
+        completed: false,
       };
 
       // Store reminder
@@ -155,13 +181,13 @@ class ReminderSystem {
       return {
         success: true,
         reminder,
-        timeUntil: this.getTimeUntilString(reminderTime)
+        timeUntil: this.getTimeUntilString(reminderTime),
       };
     } catch (error) {
-      logger.error('Error creating reminder:', error);
+      logger.error("Error creating reminder:", error);
       return {
         success: false,
-        error: 'Failed to create reminder'
+        error: "Failed to create reminder",
       };
     }
   }
@@ -172,12 +198,12 @@ class ReminderSystem {
    */
   scheduleReminder(reminder) {
     const delay = reminder.reminderTime.getTime() - Date.now();
-    
+
     if (delay > 0) {
       const timeoutId = setTimeout(() => {
         this.triggerReminder(reminder);
       }, delay);
-      
+
       this.scheduledTasks.set(reminder.id, timeoutId);
     }
   }
@@ -190,22 +216,23 @@ class ReminderSystem {
     try {
       // Mark as completed
       reminder.completed = true;
-      
+
       // Remove from scheduled tasks
       this.scheduledTasks.delete(reminder.id);
-      
+
       // Send reminder notification (will be implemented in the bot files)
       if (this.onReminderTrigger) {
         await this.onReminderTrigger(reminder);
       }
-      
-      logger.info(`Reminder ${reminder.id} triggered for user ${reminder.userId}`);
-      
+
+      logger.info(
+        `Reminder ${reminder.id} triggered for user ${reminder.userId}`
+      );
+
       // Clean up old completed reminder after 24 hours
       setTimeout(() => {
         this.reminders.delete(reminder.id);
       }, 24 * 60 * 60 * 1000);
-      
     } catch (error) {
       logger.error(`Error triggering reminder ${reminder.id}:`, error);
     }
@@ -218,13 +245,13 @@ class ReminderSystem {
    */
   getUserReminders(userId) {
     const userReminders = [];
-    
+
     for (const [id, reminder] of this.reminders) {
       if (reminder.userId === userId && !reminder.completed) {
         userReminders.push(reminder);
       }
     }
-    
+
     return userReminders.sort((a, b) => a.reminderTime - b.reminderTime);
   }
 
@@ -236,21 +263,21 @@ class ReminderSystem {
    */
   cancelReminder(reminderId, userId) {
     const reminder = this.reminders.get(reminderId);
-    
+
     if (!reminder || reminder.userId !== userId) {
       return false;
     }
-    
+
     // Clear scheduled task
     const timeoutId = this.scheduledTasks.get(reminderId);
     if (timeoutId) {
       clearTimeout(timeoutId);
       this.scheduledTasks.delete(reminderId);
     }
-    
+
     // Remove reminder
     this.reminders.delete(reminderId);
-    
+
     logger.info(`Reminder ${reminderId} cancelled by user ${userId}`);
     return true;
   }
@@ -263,20 +290,20 @@ class ReminderSystem {
   getTimeUntilString(reminderTime) {
     const now = new Date();
     const diff = reminderTime.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'now';
-    
+
+    if (diff <= 0) return "now";
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     const parts = [];
-    if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
-    if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
-    
-    if (parts.length === 0) return 'less than a minute';
-    return parts.join(', ');
+    if (days > 0) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
+    if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
+    if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
+
+    if (parts.length === 0) return "less than a minute";
+    return parts.join(", ");
   }
 
   /**
@@ -286,16 +313,16 @@ class ReminderSystem {
    */
   formatReminderTime(date) {
     const options = {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     };
-    
-    return date.toLocaleDateString('en-US', options);
+
+    return date.toLocaleDateString("en-US", options);
   }
 
   /**
@@ -303,17 +330,17 @@ class ReminderSystem {
    */
   startCleanupTask() {
     // Run every hour to clean up old completed reminders
-    cron.schedule('0 * * * *', () => {
+    cron.schedule("0 * * * *", () => {
       let cleaned = 0;
-      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-      
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
       for (const [id, reminder] of this.reminders) {
         if (reminder.completed && reminder.reminderTime.getTime() < oneDayAgo) {
           this.reminders.delete(id);
           cleaned++;
         }
       }
-      
+
       if (cleaned > 0) {
         logger.info(`Cleaned up ${cleaned} old reminders`);
       }
@@ -327,7 +354,7 @@ class ReminderSystem {
   getStats() {
     let active = 0;
     let completed = 0;
-    
+
     for (const [id, reminder] of this.reminders) {
       if (reminder.completed) {
         completed++;
@@ -335,21 +362,13 @@ class ReminderSystem {
         active++;
       }
     }
-    
+
     return {
       totalReminders: this.reminders.size,
       activeReminders: active,
       completedReminders: completed,
-      scheduledTasks: this.scheduledTasks.size
+      scheduledTasks: this.scheduledTasks.size,
     };
-  }
-
-  /**
-   * Set callback for when reminders trigger
-   * @param {Function} callback - Callback function
-   */
-  setReminderCallback(callback) {
-    this.onReminderTrigger = callback;
   }
 
   /**
@@ -359,7 +378,7 @@ class ReminderSystem {
   restoreReminders() {
     // In a real implementation, this would load from database
     // and reschedule active reminders
-    logger.info('Reminder system initialized');
+    logger.info("Reminder system initialized");
   }
 }
 
