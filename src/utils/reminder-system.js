@@ -73,15 +73,25 @@ class ReminderSystem {
       const minutes = parseInt(timeMatch[2]) || 0;
       const period = timeMatch[3];
 
+      // Handle 12-hour format
       if (period === "pm" && hours !== 12) hours += 12;
       if (period === "am" && hours === 12) hours = 0;
+
+      // For 24-hour format without am/pm, validate hours
+      if (!period && (hours < 0 || hours > 23)) {
+        return null; // Invalid hour
+      }
 
       const date = new Date(now);
       date.setHours(hours, minutes, 0, 0);
 
+      // Debug log to check what's happening
+      logger.info(`Parsing time: ${input} -> ${date.toLocaleString()} (now: ${now.toLocaleString()})`);
+
       // If time has passed today, set for tomorrow
       if (date <= now) {
         date.setDate(date.getDate() + 1);
+        logger.info(`Time has passed, setting for tomorrow: ${date.toLocaleString()}`);
       }
 
       return date;
@@ -291,6 +301,9 @@ class ReminderSystem {
     const now = new Date();
     const diff = reminderTime.getTime() - now.getTime();
 
+    // Debug log
+    logger.info(`Time calculation: reminder=${reminderTime.toLocaleString()}, now=${now.toLocaleString()}, diff=${diff}ms`);
+
     if (diff <= 0) return "now";
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -303,7 +316,11 @@ class ReminderSystem {
     if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
 
     if (parts.length === 0) return "less than a minute";
-    return parts.join(", ");
+    
+    const result = parts.join(", ");
+    logger.info(`Time until string: ${result} (days=${days}, hours=${hours}, minutes=${minutes})`);
+    
+    return result;
   }
 
   /**
