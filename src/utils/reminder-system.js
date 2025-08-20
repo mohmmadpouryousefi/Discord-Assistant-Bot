@@ -85,23 +85,11 @@ class ReminderSystem {
       const date = new Date(now);
       date.setHours(hours, minutes, 0, 0);
 
-      // Debug log to check what's happening
-      logger.info(
-        `Parsing time: ${input} -> ${date.toLocaleString()} (now: ${now.toLocaleString()})`
-      );
-
       // If time has passed today by more than 1 minute, set for tomorrow
       // This gives a small buffer in case user sets reminder for current time
       const bufferTime = new Date(now.getTime() + 60000); // 1 minute buffer
       if (date < bufferTime) {
         date.setDate(date.getDate() + 1);
-        logger.info(
-          `Time has passed (with buffer), setting for tomorrow: ${date.toLocaleString()}`
-        );
-      } else {
-        logger.info(
-          `Time is in the future, setting for today: ${date.toLocaleString()}`
-        );
       }
 
       return date;
@@ -311,11 +299,6 @@ class ReminderSystem {
     const now = new Date();
     const diff = reminderTime.getTime() - now.getTime();
 
-    // Debug log
-    logger.info(
-      `Time calculation: reminder=${reminderTime.toLocaleString()}, now=${now.toLocaleString()}, diff=${diff}ms`
-    );
-
     if (diff <= 0) return "now";
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -328,15 +311,8 @@ class ReminderSystem {
     if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
 
     if (parts.length === 0) return "less than a minute";
-
-    const result = parts.join(", ");
-    logger.info(
-      `Time until string: ${result} (days=${days}, hours=${hours}, minutes=${minutes})`
-    );
-
-    return result;
+    return parts.join(", ");
   }
-
   /**
    * Format reminder time for display
    * @param {Date} date - Date to format
