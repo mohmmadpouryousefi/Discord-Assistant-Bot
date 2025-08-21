@@ -201,27 +201,30 @@ class HealthCheckSystem {
    * Check Weather API health
    */
   async checkWeatherAPI() {
+    const startTime = Date.now();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(
-        `http://api.weatherapi.com/v1/current.json?key=${config.api.weatherKey}&q=Tehran`,
+        `https://api.weatherapi.com/v1/current.json?key=${config.api.weatherKey}&q=Tehran`,
         { signal: controller.signal }
       );
 
       clearTimeout(timeoutId);
+      const responseTime = Date.now() - startTime;
 
       if (response.ok) {
-        return { status: "healthy", responseTime: Date.now() };
+        return { status: "healthy", responseTime };
       } else {
-        return { status: "degraded", httpStatus: response.status };
+        return { status: "degraded", httpStatus: response.status, responseTime };
       }
     } catch (error) {
+      const responseTime = Date.now() - startTime;
       if (error.name === "AbortError") {
-        return { status: "unhealthy", error: "timeout" };
+        return { status: "unhealthy", error: "timeout", responseTime };
       }
-      return { status: "unhealthy", error: error.message };
+      return { status: "unhealthy", error: error.message, responseTime };
     }
   }
 
@@ -229,6 +232,7 @@ class HealthCheckSystem {
    * Check Telegram API health
    */
   async checkTelegramAPI() {
+    const startTime = Date.now();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -239,17 +243,19 @@ class HealthCheckSystem {
       );
 
       clearTimeout(timeoutId);
+      const responseTime = Date.now() - startTime;
 
       if (response.ok) {
-        return { status: "healthy", responseTime: Date.now() };
+        return { status: "healthy", responseTime };
       } else {
-        return { status: "degraded", httpStatus: response.status };
+        return { status: "degraded", httpStatus: response.status, responseTime };
       }
     } catch (error) {
+      const responseTime = Date.now() - startTime;
       if (error.name === "AbortError") {
-        return { status: "unhealthy", error: "timeout" };
+        return { status: "unhealthy", error: "timeout", responseTime };
       }
-      return { status: "unhealthy", error: error.message };
+      return { status: "unhealthy", error: error.message, responseTime };
     }
   }
 
@@ -330,47 +336,80 @@ class HealthCheckSystem {
    * Calculate overall health status
    */
   calculateOverallHealth(checks) {
-    let healthyCount = 0;
-    let degradedCount = 0;
-    let unhealthyCount = 0;
-    let totalChecks = 0;
+    // Critical systems that affect overall health significantly
+    const criticalSystems = ['discord', 'system', 'memory', 'storage'];
+    const externalSystems = ['apis'];
+    
+    let criticalUnhealthy = 0;
+    let criticalDegraded = 0;
+    let criticalHealthy = 0;
+    
+    let externalUnhealthy = 0;
+    let externalDegraded = 0;
+    let externalHealthy = 0;
 
-    const countStatus = (check) => {
-      totalChecks++;
-      switch (check.status) {
-        case "healthy":
-          healthyCount++;
-          break;
-        case "degraded":
-          degradedCount++;
-          break;
-        case "unhealthy":
-          unhealthyCount++;
-          break;
+    const countStatus = (check, isCritical = false) => {
+      const status = check.status || 'unknown';
+      
+      if (isCritical) {
+        switch (status) {
+          case "healthy":
+            criticalHealthy++;
+            break;
+          case "degraded":
+            criticalDegraded++;
+            break;
+          case "unhealthy":
+            criticalUnhealthy++;
+            break;
+        }
+      } else {
+        switch (status) {
+          case "healthy":
+            externalHealthy++;
+            break;
+          case "degraded":
+            externalDegraded++;
+            break;
+          case "unhealthy":
+            externalUnhealthy++;
+            break;
+        }
       }
     };
 
-    // Count main checks
-    Object.values(checks).forEach((check) => {
-      if (check.status) {
-        countStatus(check);
-      } else if (typeof check === "object") {
-        // For nested checks like APIs
-        Object.values(check).forEach((subCheck) => {
-          if (subCheck.status) {
-            countStatus(subCheck);
-          }
-        });
+    // Count critical systems
+    criticalSystems.forEach(systemName => {
+      if (checks[systemName]) {
+        countStatus(checks[systemName], true);
       }
     });
 
-    // Determine overall status
-    if (unhealthyCount > 0) {
+    // Count external systems (APIs)
+    if (checks.apis && typeof checks.apis === 'object') {
+      Object.values(checks.apis).forEach(apiCheck => {
+        if (apiCheck && apiCheck.status) {
+          countStatus(apiCheck, false);
+        }
+      });
+    }
+
+    // Determine overall status based on critical systems primarily
+    if (criticalUnhealthy > 0) {
       return "unhealthy";
-    } else if (degradedCount > 0) {
+    } else if (criticalDegraded > 0) {
       return "degraded";
+    } else if (criticalHealthy > 0) {
+      // All critical systems are healthy, check external systems
+      if (externalUnhealthy > externalHealthy) {
+        return "degraded"; // Many external services down
+      } else if (externalDegraded > 0 || externalUnhealthy > 0) {
+        return "degraded"; // Some external issues
+      } else {
+        return "healthy";
+      }
     } else {
-      return "healthy";
+      return "unhealthy"; // No critical systems reporting
     }
   }
 
