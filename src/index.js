@@ -101,10 +101,10 @@ if (config.features.enableTelegram && config.bot.telegramToken) {
 
 client.once(Events.ClientReady, (readyClient) => {
   clientReadyHandler(readyClient);
-  
+
   // Initialize health monitoring system after bot is ready
   healthSystem.initialize(readyClient);
-  
+
   // Add alert callback for health issues
   healthSystem.addAlertCallback(async (healthStatus, checks) => {
     if (healthStatus.overall === "unhealthy") {
@@ -114,7 +114,7 @@ client.once(Events.ClientReady, (readyClient) => {
       });
     }
   });
-  
+
   logger.info("🏥 Health monitoring system started");
 });
 

@@ -16,15 +16,20 @@ module.exports = {
 
       // Get current health status
       const healthStatus = healthSystem.getHealthStatus();
-      
+
       // Create detailed health embed
       const embed = new EmbedBuilder()
         .setColor(
-          healthStatus.overall === "healthy" ? "#00ff00" :
-          healthStatus.overall === "degraded" ? "#ffff00" : "#ff0000"
+          healthStatus.overall === "healthy"
+            ? "#00ff00"
+            : healthStatus.overall === "degraded"
+            ? "#ffff00"
+            : "#ff0000"
         )
         .setTitle("🏥 Bot Health Status")
-        .setDescription(`**Overall Status:** ${healthStatus.overall.toUpperCase()}`)
+        .setDescription(
+          `**Overall Status:** ${healthStatus.overall.toUpperCase()}`
+        )
         .setTimestamp(healthStatus.lastCheck)
         .setFooter({ text: "Last health check" });
 
@@ -33,18 +38,18 @@ module.exports = {
       const uptimeMinutes = Math.floor((healthStatus.uptime % 3600) / 60);
       const uptimeSeconds = Math.floor(healthStatus.uptime % 60);
 
-      embed.addFields(
-        {
-          name: "⏰ System Uptime",
-          value: `${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s`,
-          inline: true,
-        }
-      );
+      embed.addFields({
+        name: "⏰ System Uptime",
+        value: `${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s`,
+        inline: true,
+      });
 
       // Discord Health
       if (healthStatus.checks.discord) {
         const discord = healthStatus.checks.discord;
-        const discordStatus = discord.connected ? "🟢 Connected" : "🔴 Disconnected";
+        const discordStatus = discord.connected
+          ? "🟢 Connected"
+          : "🔴 Disconnected";
         const ping = discord.ping ? `${discord.ping}ms` : "N/A";
         const guilds = discord.guilds || 0;
 
@@ -71,7 +76,12 @@ module.exports = {
       // Memory Details
       if (healthStatus.checks.memory) {
         const memory = healthStatus.checks.memory;
-        const memStatus = memory.status === "healthy" ? "🟢" : memory.status === "degraded" ? "🟡" : "🔴";
+        const memStatus =
+          memory.status === "healthy"
+            ? "🟢"
+            : memory.status === "degraded"
+            ? "🟡"
+            : "🔴";
 
         embed.addFields({
           name: "💾 Memory Usage",
@@ -86,12 +96,22 @@ module.exports = {
         let apiStatus = "";
 
         if (apis.weather) {
-          const weatherIcon = apis.weather.status === "healthy" ? "🟢" : apis.weather.status === "degraded" ? "🟡" : "🔴";
+          const weatherIcon =
+            apis.weather.status === "healthy"
+              ? "🟢"
+              : apis.weather.status === "degraded"
+              ? "🟡"
+              : "🔴";
           apiStatus += `**Weather API:** ${weatherIcon} ${apis.weather.status}\n`;
         }
 
         if (apis.telegram) {
-          const telegramIcon = apis.telegram.status === "healthy" ? "🟢" : apis.telegram.status === "degraded" ? "🟡" : "🔴";
+          const telegramIcon =
+            apis.telegram.status === "healthy"
+              ? "🟢"
+              : apis.telegram.status === "degraded"
+              ? "🟡"
+              : "🔴";
           apiStatus += `**Telegram API:** ${telegramIcon} ${apis.telegram.status}\n`;
         }
 
@@ -107,11 +127,18 @@ module.exports = {
       // Storage Health
       if (healthStatus.checks.storage) {
         const storage = healthStatus.checks.storage;
-        const storageIcon = storage.status === "healthy" ? "🟢" : storage.status === "degraded" ? "🟡" : "🔴";
-        
+        const storageIcon =
+          storage.status === "healthy"
+            ? "🟢"
+            : storage.status === "degraded"
+            ? "🟡"
+            : "🔴";
+
         embed.addFields({
           name: "💿 Storage",
-          value: `**Status:** ${storageIcon} ${storage.status}\n**Readable:** ${storage.accessible ? "✅" : "❌"}\n**Writable:** ${storage.writable ? "✅" : "❌"}`,
+          value: `**Status:** ${storageIcon} ${storage.status}\n**Readable:** ${
+            storage.accessible ? "✅" : "❌"
+          }\n**Writable:** ${storage.writable ? "✅" : "❌"}`,
           inline: true,
         });
       }
@@ -119,7 +146,11 @@ module.exports = {
       // Add performance info
       embed.addFields({
         name: "📊 Performance",
-        value: `**Health Checks:** Every 30s\n**Last Check:** <t:${Math.floor(healthStatus.lastCheck.getTime() / 1000)}:R>\n**Response Time:** ${Date.now() - interaction.createdTimestamp}ms`,
+        value: `**Health Checks:** Every 30s\n**Last Check:** <t:${Math.floor(
+          healthStatus.lastCheck.getTime() / 1000
+        )}:R>\n**Response Time:** ${
+          Date.now() - interaction.createdTimestamp
+        }ms`,
         inline: false,
       });
 
@@ -128,7 +159,6 @@ module.exports = {
       });
 
       logger.info(`Health status checked by user ${interaction.user.tag}`);
-
     } catch (error) {
       logger.error("Error in health command:", error);
 

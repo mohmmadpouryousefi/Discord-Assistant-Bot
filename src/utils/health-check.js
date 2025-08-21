@@ -24,7 +24,7 @@ class HealthCheckSystem {
 
     this.checkInterval = null;
     this.alertCallbacks = [];
-    
+
     // Store the instance
     HealthCheckSystem.instance = this;
   }
@@ -89,7 +89,6 @@ class HealthCheckSystem {
 
       // Trigger alerts if needed
       await this.checkAlerts(checks);
-
     } catch (error) {
       logger.error("Error performing health checks:", error);
       this.healthStatus.overall = "unhealthy";
@@ -152,8 +151,9 @@ class HealthCheckSystem {
       };
 
       // Calculate memory usage percentage
-      const memoryUsage = ((status.totalMemory - status.freeMemory) / status.totalMemory) * 100;
-      
+      const memoryUsage =
+        ((status.totalMemory - status.freeMemory) / status.totalMemory) * 100;
+
       // Check for issues
       if (memoryUsage > 90) {
         status.status = "unhealthy";
@@ -218,7 +218,7 @@ class HealthCheckSystem {
         return { status: "degraded", httpStatus: response.status };
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         return { status: "unhealthy", error: "timeout" };
       }
       return { status: "unhealthy", error: error.message };
@@ -246,7 +246,7 @@ class HealthCheckSystem {
         return { status: "degraded", httpStatus: response.status };
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         return { status: "unhealthy", error: "timeout" };
       }
       return { status: "unhealthy", error: error.message };
@@ -259,7 +259,7 @@ class HealthCheckSystem {
   async checkMemoryUsage() {
     try {
       const memUsage = process.memoryUsage();
-      
+
       const status = {
         rss: memUsage.rss,
         heapTotal: memUsage.heapTotal,
@@ -310,8 +310,8 @@ class HealthCheckSystem {
 
       // Check if we can write to temp directory
       try {
-        const testFile = path.join(process.cwd(), '.health-check-test');
-        await fs.writeFile(testFile, 'test');
+        const testFile = path.join(process.cwd(), ".health-check-test");
+        await fs.writeFile(testFile, "test");
         await fs.unlink(testFile);
         status.writable = true;
       } catch (error) {
@@ -351,12 +351,12 @@ class HealthCheckSystem {
     };
 
     // Count main checks
-    Object.values(checks).forEach(check => {
+    Object.values(checks).forEach((check) => {
       if (check.status) {
         countStatus(check);
-      } else if (typeof check === 'object') {
+      } else if (typeof check === "object") {
         // For nested checks like APIs
-        Object.values(check).forEach(subCheck => {
+        Object.values(check).forEach((subCheck) => {
           if (subCheck.status) {
             countStatus(subCheck);
           }
@@ -420,7 +420,7 @@ class HealthCheckSystem {
    */
   getHealthResponse() {
     const status = this.getHealthStatus();
-    
+
     return {
       status: status.overall,
       timestamp: status.lastCheck.toISOString(),
@@ -439,8 +439,12 @@ class HealthCheckSystem {
     const uptimeMinutes = Math.floor((status.uptime % 3600) / 60);
 
     const embed = {
-      color: status.overall === "healthy" ? 0x00ff00 : 
-             status.overall === "degraded" ? 0xffff00 : 0xff0000,
+      color:
+        status.overall === "healthy"
+          ? 0x00ff00
+          : status.overall === "degraded"
+          ? 0xffff00
+          : 0xff0000,
       title: "🏥 Bot Health Status",
       description: `**Overall Status:** ${status.overall.toUpperCase()}`,
       fields: [
@@ -451,7 +455,9 @@ class HealthCheckSystem {
         },
         {
           name: "🤖 Discord",
-          value: status.checks.discord?.connected ? "✅ Connected" : "❌ Disconnected",
+          value: status.checks.discord?.connected
+            ? "✅ Connected"
+            : "❌ Disconnected",
           inline: true,
         },
         {

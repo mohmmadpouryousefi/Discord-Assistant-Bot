@@ -45,7 +45,7 @@ class KeepAliveServer {
       // Detailed health endpoint
       if (url === "/health/detailed") {
         const detailedHealth = this.healthSystem.getHealthStatus();
-        
+
         res.writeHead(200, {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
