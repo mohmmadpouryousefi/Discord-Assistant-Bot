@@ -3,6 +3,7 @@ const config = require("./config");
 const logger = require("./utils/logger");
 const KeepAliveServer = require("./utils/keep-alive");
 const ReminderSystem = require("./utils/reminder-system");
+const HealthCheckSystem = require("./utils/health-check");
 
 const {
   Client,
@@ -18,8 +19,9 @@ const { clientReadyHandler } = require("./events/clientReady");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-// Initialize Reminder System
+// Initialize Systems
 const reminderSystem = new ReminderSystem();
+const healthSystem = new HealthCheckSystem();
 
 // Set up reminder callback to send notifications
 reminderSystem.setReminderCallback(async (reminder) => {
@@ -97,7 +99,24 @@ if (config.features.enableTelegram && config.bot.telegramToken) {
   logger.warn("⚠️ Telegram bot disabled or token missing");
 }
 
-client.once(Events.ClientReady, clientReadyHandler);
+client.once(Events.ClientReady, (readyClient) => {
+  clientReadyHandler(readyClient);
+  
+  // Initialize health monitoring system after bot is ready
+  healthSystem.initialize(readyClient);
+  
+  // Add alert callback for health issues
+  healthSystem.addAlertCallback(async (healthStatus, checks) => {
+    if (healthStatus.overall === "unhealthy") {
+      logger.error("🚨 Health Alert: Bot status is UNHEALTHY", {
+        status: healthStatus.overall,
+        checks: checks,
+      });
+    }
+  });
+  
+  logger.info("🏥 Health monitoring system started");
+});
 
 // Handle slash command interactions
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -141,6 +160,7 @@ keepAliveServer.start();
 // Handle process termination gracefully
 process.on("SIGINT", () => {
   logger.info("👋 Received SIGINT. Gracefully shutting down...");
+  healthSystem.stop();
   keepAliveServer.stop();
   client.destroy();
   process.exit(0);
@@ -148,6 +168,7 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
   logger.info("👋 Received SIGTERM. Gracefully shutting down...");
+  healthSystem.stop();
   keepAliveServer.stop();
   client.destroy();
   process.exit(0);

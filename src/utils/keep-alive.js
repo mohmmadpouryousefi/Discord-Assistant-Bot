@@ -1,16 +1,18 @@
 const http = require("http");
 const logger = require("./logger");
+const HealthCheckSystem = require("./health-check");
 
 /**
  * Keep-Alive HTTP Server
  * Prevents the bot from sleeping on free hosting platforms
- * Provides a health check endpoint
+ * Provides health check endpoints
  */
 class KeepAliveServer {
   constructor(port = process.env.PORT || 3000) {
     this.port = port;
     this.server = null;
     this.startTime = new Date();
+    this.healthSystem = new HealthCheckSystem();
   }
 
   start() {
@@ -19,14 +21,7 @@ class KeepAliveServer {
 
       // Health check endpoint
       if (url === "/" || url === "/health") {
-        const healthData = {
-          status: "online",
-          uptime: this.getUptime(),
-          timestamp: new Date().toISOString(),
-          memory: this.getMemoryUsage(),
-          version: process.version,
-          platform: process.platform,
-        };
+        const healthData = this.healthSystem.getHealthResponse();
 
         res.writeHead(200, {
           "Content-Type": "application/json",
@@ -35,15 +30,27 @@ class KeepAliveServer {
         res.end(JSON.stringify(healthData, null, 2));
 
         logger.info(
-          `Health check accessed from ${req.connection.remoteAddress}`
+          `Health check accessed from ${req.connection.remoteAddress} - Status: ${healthData.status}`
         );
         return;
       }
 
-      // Status endpoint
+      // Basic status endpoint
       if (url === "/status") {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("Discord Bot is running! ✅");
+        return;
+      }
+
+      // Detailed health endpoint
+      if (url === "/health/detailed") {
+        const detailedHealth = this.healthSystem.getHealthStatus();
+        
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        });
+        res.end(JSON.stringify(detailedHealth, null, 2));
         return;
       }
 
